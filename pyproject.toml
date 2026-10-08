@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "pythonyashka"
+version = "0.1.0"
+description = ""
+authors = []
+package-mode = false
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+fastapi = "^0.143.0"
+pydantic-settings = "^2.15.0"
+alembic = "^1.20.0"
+sqlalchemy = "^2.1.4"
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+
+[tool.poetry.group.dev.dependencies]
+poethepoet = "^0.48.0"
+ruff = "^0.16.10"
+mypy = "^2.4.0"
+
+[tool.poe.tasks.ruff]
+shell = "ruff check --no-cache --show-fixes --output-format grouped src"
+
+[tool.poe.tasks.ruff_fix]
+shell = "ruff check src --fix"
+
+[tool.poe.tasks.mypy]
+shell = "mypy src"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

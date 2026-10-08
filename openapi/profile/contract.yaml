@@ -1,0 +1,195 @@
+openapi: 3.0.3
+info:
+  title: Profile Service API
+  description: |
+    Microservice responsible for storing, managing, and providing profile data to other microservices.
+  version: 1.0.0
+
+paths:
+  /profiles:
+    post:
+      summary: Create a new profile
+      operationId: createProfile
+      tags:
+        - Profiles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileCreate' 
+      responses:
+        '201':
+          $ref: '#/components/responses/ProfileCreatedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableProfileResponse'
+
+  /profiles/{profile_id}:
+    get:
+      summary: Get profile by ID
+      operationId: getProfileById
+      tags:
+        - Profiles
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileGetResponse'
+        '404':
+          $ref: '#/components/responses/ProfileNotFoundResponse'
+
+    patch:
+      summary: Update profile data
+      operationId: updateProfile
+      tags:
+        - Profiles
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '204':
+          description: OK
+        '404':
+          $ref: '#/components/responses/ProfileNotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableProfileResponse'
+
+components:
+  schemas:
+    ProfileGet:
+      type: object
+      required: [id, name, surname, age, bio, gender, tags, created_at, updated_at]
+      properties:
+        id: 
+          type: string
+          format: uuid
+        name:
+          type: string
+        surname: 
+          type: string
+        age:
+          type: integer
+        bio:
+          type: string
+        gender:
+          type: string
+          enum: [male, female]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        tags: 
+          type: array
+          items: 
+            type: string
+    
+    ProfileCreate:
+      type: object
+      required: [name, surname, age, bio, gender, tags]
+      properties:
+        name:
+          type: string
+        surname: 
+          type: string
+        age:
+          type: integer
+        bio:
+          type: string
+        gender:
+          type: string
+          enum: [male, female]
+        tags: 
+          type: array
+          items: 
+            type: string
+
+    ProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        surname: 
+          type: string
+        age:
+          type: integer
+        bio:
+          type: string
+        gender:
+          type: string
+          enum: [male, female]
+        tags: 
+          type: array
+          items: 
+            type: string
+
+  responses:
+    ProfileGetResponse:
+      description: ok
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [profile]
+            properties:
+              profile:
+                $ref: "#/components/schemas/ProfileGet"
+
+    ProfileCreatedResponse:
+      description: profile created
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [id]
+            properties:
+              id:
+                type: string
+                format: uuid
+    
+    ProfileNotFoundResponse:
+      description: profile with such id not found
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: string
+                example: "Profile not found"
+    
+    UnprocessableProfileResponse:
+      description: profile validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [errors]
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  required: [field, reason]
+                  properties:
+                    field:
+                      type: string
+                    reason:
+                      type: string

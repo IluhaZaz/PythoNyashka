@@ -1,0 +1,81 @@
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    ".vscode",
+    ".idea",
+    "migrations",
+    "__init__.py",
+    "commands.py",
+    "tests",
+    "test",
+    "src/core/etl/deprecated"
+]
+
+line-length = 100
+lint.dummy-variable-rgx = "^(_|[a-z_][a-z0-9_]{2,30})$"
+target-version = "py310"
+
+lint.select = [
+    "FBT003", #boolean-positional-value-in-call
+    "B", # flake8-bugbear,
+    "A", #flake8-builtins,
+    "COM818", #trailing-comma-on-bare-tuple
+    "C", # flake8-comprehensions
+    "T10", #flake8-debugger
+    "ISC001", #single-line-implicit-string-concatenation
+    "PIE", #flake8-pie
+    "Q", #flake8-quotes
+    "RET502", #implicit-return-value
+    "SIM101", #duplicate-isinstance-call
+    "SIM103", #needless-bool
+    "SIM109", #compare-with-tuple
+    "SIM115", #open-file-with-context-handler
+    "SIM905", #split-static-string
+    "SIM220", #expr-and-not-expr
+    "SIM221", #expr-or-not-expr
+    "SIM222", #expr-or-true
+    "SIM223", #expr-and-false
+    "I", # isort
+    "C90", #mccabe
+    "PERF", #Perflint
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "PLC2401", #non-ascii-name
+    "PLC3002", #unnecessary-direct-lambda-call
+    "S101", #assert
+]
+
+lint.ignore = [
+    "ANN204",
+    "ANN401",
+    "ANN202",
+    "PIE790",
+    "PIE808",
+    "Q000",
+    "Q003",
+    "Q004",
+    "RET504",
+    "PERF401",
+    "PERF203",
+    "SIM103"
+]

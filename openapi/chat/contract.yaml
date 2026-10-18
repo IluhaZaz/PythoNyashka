@@ -1,0 +1,186 @@
+openapi: 3.0.3
+info:
+  title: Chat Service API
+  description: |
+    Microservice responsible for storing, managing, and providing chats data.
+  version: 1.0.0
+paths:
+  /chats:
+    post:
+      summary: Create a new chat
+      operationId: createChat
+      tags: 
+        - Chats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: 
+              $ref: '#/components/schemas/ChatCreate'
+      responses:
+        '200':
+          $ref: '#/components/responses/ChatCreatedResponse'
+        '404':
+          $ref: '#/components/responses/EntityNotFoundResponse'
+    
+    get:
+      summary: Get profile chats
+      operationId: getChats
+      tags: 
+        - Chats
+      responses:
+        '200':
+          $ref: '#/components/responses/ChatsResponse'
+        '404':
+          $ref: '#/components/responses/EntityNotFoundResponse'
+
+  /chats/{chat_id}/message:
+    post:
+      summary: Send message
+      operationId: sendMessage
+      tags: 
+        - Chats
+      parameters:
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: 
+                $ref: '#/components/schemas/MessageCreate'
+      responses:
+        '204':
+          description: OK
+        '404':
+          $ref: '#/components/responses/EntityNotFoundResponse'
+  
+  /chats/{chat_id}/messages:
+    get:
+      summary: Get chat messages
+      operationId: getChatMessages
+      tags: 
+        - Chats
+      parameters:
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: offset
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/ChatMessagesResponse'
+        '404':
+          $ref: '#/components/responses/EntityNotFoundResponse'
+
+components:
+  schemas:
+    ChatCreate:
+      type: object
+      required: [contactIds]
+      properties:
+        contactIds: 
+          type: array
+          items:
+            type: string
+            format: uuid
+    
+    MessageCreate:
+      type: object
+      required: [text, media]
+      properties:
+        text:
+          type: string
+        media:
+          type: array
+          items: 
+            type: string
+            format: uuid
+    
+    MessageGet:
+      type: object
+      required: [id, senderId, text, media]
+      properties:
+        id: 
+          type: string
+          format: uuid
+        senderId: 
+          type: string
+          format: uuid
+        text:
+          type: string
+        media:
+          type: array
+          items: 
+            type: string
+            format: uuid
+        sentAt:
+          type: string
+          format: date-time
+  responses:
+    ChatCreatedResponse:
+      description: chat created
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [id]
+            properties:
+              id:
+                type: string
+                format: uuid
+    
+    ChatMessagesResponse:
+      description: got chat messages
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [chatId]
+            properties:
+              chatId:
+                type: string
+                format: uuid
+              messages:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MessageGet'
+    
+    ChatsResponse:
+      description: got all chat ids
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              chatIds: 
+                type: array
+                items: 
+                  type: string
+                  format: uuid
+    
+    EntityNotFoundResponse:
+      description: entity with such id not found
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: string
+                example: "Chat not found"
+

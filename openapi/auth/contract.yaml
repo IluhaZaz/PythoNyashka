@@ -35,7 +35,7 @@ paths:
       security:
         - BearerAuth: []
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
@@ -148,7 +148,7 @@ components:
 
     PasswordResetRequest:
       type: object
-      required: [email]
+      required: [email, code, new_password]
       properties:
         email:
           type: string
@@ -156,17 +156,17 @@ components:
           example: "user@example.com"
         code:
           type: string
-          description: Confirmation code sent to email (if confirming reset)
+          description: Confirmation code sent to email
           example: "123456"
         new_password:
           type: string
           format: password
-          description: New password (if confirming reset)
+          description: New password
           example: "NewSecret123!"
 
     AuthTokens:
       type: object
-      required: [access_token, refresh_token, token_type, expires_in]
+      required: [access_token, refresh_token, token_type]
       properties:
         access_token:
           type: string
@@ -179,7 +179,8 @@ components:
           example: "Bearer"
         expires_in:
           type: integer
-          description: Lifetime of access_token in seconds
+          nullable: true
+          description: Lifetime of access_token in seconds (int or None)
           example: 3600
 
   responses:

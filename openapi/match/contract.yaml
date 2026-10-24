@@ -1,0 +1,98 @@
+openapi: 3.0.3
+info:
+  title: Match Service API
+  description: |
+    Microservice responsible for finding matches and storing their history.
+  version: 1.0.0
+paths:
+  /matches:
+    get:
+      summary: Get match
+      operationId: getMatch
+      tags:
+      - Matches
+      responses:
+        '200':
+          $ref: '#/components/responses/MatchGetResponse'
+
+  /matches/history:
+    get:
+      summary: Get matches history
+      operationId: getMatchHistory
+      tags:
+      - Matches
+      parameters:
+        - name: offset
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/MatchesGetResponse'
+  
+  /matches/{match_id}/like:
+    post:
+      summary: Accept match
+      operationId: acceptMatch
+      tags:
+      - Matches
+      responses:
+        '204':
+          description: OK
+  
+  /matches/{match_id}/dislike:
+    post:
+      summary: Reject match
+      operationId: rejectMatch
+      tags:
+      - Matches
+      responses:
+        '204':
+          description: OK
+
+
+components:
+  schemas:
+    MatchGet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        initiatorProfileId:
+          type: string
+          format: uuid
+        targetProfileId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: ['noResponse', 'accepted', 'rejected']
+        createdAt:
+          type: string
+          format: datetime
+  responses:
+    MatchGetResponse:
+        description: got match
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchGet'
+
+    MatchesGetResponse:
+      description: got matches history
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              matches:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatchGet'
+
+

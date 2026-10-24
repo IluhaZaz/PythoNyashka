@@ -1,0 +1,502 @@
+openapi: 3.0.3
+info:
+  title: BFF API
+  description: |
+    Microservice representing the layer between backend microservices and frontend.
+  version: 1.0.0
+
+paths:
+  /profiles:
+    post:
+      summary: Create a new profile
+      operationId: createProfile
+      tags:
+        - Profiles
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProfileCreate' 
+      responses:
+        '201':
+          $ref: '#/components/responses/ProfileCreatedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableProfileResponse'
+    patch:
+        summary: Update profile data
+        operationId: updateProfile
+        tags:
+          - Profiles
+        requestBody:
+          required: true
+          content:
+            multipart/form-data:
+              schema:
+                $ref: '#/components/schemas/ProfileUpdate'
+        responses:
+          '204':
+            description: OK
+          '404':
+            $ref: '#/components/responses/ProfileNotFoundResponse'
+          '422':
+            $ref: '#/components/responses/UnprocessableProfileResponse'
+
+  /profiles/{profile_id}:
+    get:
+      summary: Get profile by ID
+      operationId: getProfileById
+      tags:
+        - Profiles
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileGetResponse'
+        '404':
+          $ref: '#/components/responses/ProfileNotFoundResponse'
+  /chats:
+    post:
+      summary: Create a new chat
+      operationId: createChat
+      tags: 
+        - Chats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: 
+              $ref: '#/components/schemas/ChatCreate'
+      responses:
+        '200':
+          $ref: '#/components/responses/ChatCreatedResponse'
+        '404':
+          $ref: '#/components/responses/EntityNotFoundResponse'
+    
+    get:
+      summary: Get profile chats
+      operationId: getChats
+      tags: 
+        - Chats
+      responses:
+        '200':
+          $ref: '#/components/responses/ChatsResponse'
+        '404':
+          $ref: '#/components/responses/EntityNotFoundResponse'
+
+  /chats/{chat_id}/message:
+    post:
+      summary: Send message
+      operationId: sendMessage
+      tags: 
+        - Chats
+      parameters:
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: 
+                $ref: '#/components/schemas/MessageCreate'
+      responses:
+        '204':
+          description: OK
+        '404':
+          $ref: '#/components/responses/EntityNotFoundResponse'
+  
+  /chats/{chat_id}/messages:
+    get:
+      summary: Get chat messages
+      operationId: getChatMessages
+      tags: 
+        - Chats
+      parameters:
+        - name: chat_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: offset
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/ChatMessagesResponse'
+        '404':
+          $ref: '#/components/responses/EntityNotFoundResponse'
+  /media/{media_id}:
+    get:
+      summary: Get media content
+      description: |
+        Returns file bytes through BFF without redirecting to Media Service.
+        BFF checks access to the associated profile or chat before returning content.
+      operationId: getMediaById
+      tags:
+        - Media
+      parameters:
+        - name: media_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File content. Content-Type contains the actual media type of the file.
+          headers:
+            Content-Disposition:
+              description: Inline or attachment disposition with the file name.
+              schema:
+                type: string
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Access to this media is forbidden
+        '404':
+          description: Media not found
+
+  /matches:
+    get:
+      summary: Get match
+      operationId: getMatch
+      tags:
+      - Matches
+      responses:
+        '200':
+          $ref: '#/components/responses/MatchGetResponse'
+
+  /matches/history:
+    get:
+      summary: Get matches history
+      operationId: getMatchHistory
+      tags:
+      - Matches
+      parameters:
+        - name: offset
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/MatchesGetResponse'
+  
+  /matches/{match_id}/swipe:
+    post:
+      summary: Answer match
+      operationId: answerMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+              enum: [like, dislike]
+      tags:
+      - Matches
+      responses:
+        '204':
+          description: OK
+
+components:
+  schemas:
+    ProfileGet:
+      type: object
+      required: [id, name, surname, age, bio, gender, tags, created_at, updated_at]
+      properties:
+        id: 
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        avatar:
+          type: string
+          format: uuid
+          description: mediaId of avatar
+        name:
+          type: string
+        surname: 
+          type: string
+        age:
+          type: integer
+        bio:
+          type: string
+        gender:
+          type: string
+          enum: [male, female]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        tags: 
+          type: array
+          items: 
+            type: string
+    
+    ProfileCreate:
+      type: object
+      required: [email, name, surname, age, bio, gender, tags]
+      properties:
+        email:
+          type: string
+          format: email
+        avatar:
+          type: string
+          format: binary
+        name:
+          type: string
+        surname: 
+          type: string
+        age:
+          type: integer
+        bio:
+          type: string
+        gender:
+          type: string
+          enum: [male, female]
+        tags: 
+          type: array
+          items: 
+            type: string
+
+    ProfileUpdate:
+      type: object
+      properties:
+        avatar:
+          type: string
+          format: binary
+        name:
+          type: string
+        surname: 
+          type: string
+        age:
+          type: integer
+        bio:
+          type: string
+        gender:
+          type: string
+          enum: [male, female]
+        tags: 
+          type: array
+          items: 
+            type: string
+
+    ChatCreate:
+      type: object
+      required: [contactIds]
+      properties:
+        contactIds: 
+          type: array
+          items:
+            type: string
+            format: uuid
+    
+    MessageCreate:
+      type: object
+      description: |
+        Send each file as a separate multipart part named media (not media[]).
+        BFF uploads the files to Media Service and passes their UUIDs to Chat Service.
+        For a text-only message, omit media parts; BFF passes an empty media array.
+      required: [text]
+      properties:
+        text:
+          type: string
+        media:
+          type: array
+          items: 
+            type: string
+            format: binary
+    
+    MessageGet:
+      type: object
+      required: [id, senderId, text, media]
+      properties:
+        id: 
+          type: string
+          format: uuid
+        senderId: 
+          type: string
+          format: uuid
+        text:
+          type: string
+        media:
+          type: array
+          description: BFF media URLs; an empty array when the message has no attachments.
+          items:
+            type: string
+            format: uri
+            description: URL of GET /media/{media_id} on BFF.
+            example: https://api.example.com/media/550e8400-e29b-41d4-a716-446655440000
+        sentAt:
+          type: string
+          format: date-time
+    
+    MatchGet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        initiatorProfileId:
+          type: string
+          format: uuid
+        targetProfileId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: ['noResponse', 'accepted', 'rejected']
+        createdAt:
+          type: string
+          format: datetime
+
+  responses:
+    ProfileGetResponse:
+      description: ok
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [profile]
+            properties:
+              profile:
+                $ref: "#/components/schemas/ProfileGet"
+
+    ProfileCreatedResponse:
+      description: profile created
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [id]
+            properties:
+              id:
+                type: string
+                format: uuid
+    
+    ProfileNotFoundResponse:
+      description: profile with such id not found
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: string
+                example: "Profile not found"
+    
+    UnprocessableProfileResponse:
+      description: profile validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [errors]
+            properties:
+              errors:
+                type: array
+                items:
+                  type: object
+                  required: [field, reason]
+                  properties:
+                    field:
+                      type: string
+                    reason:
+                      type: string
+    ChatCreatedResponse:
+      description: chat created
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [id]
+            properties:
+              id:
+                type: string
+                format: uuid
+    
+    ChatMessagesResponse:
+      description: got chat messages
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [chatId]
+            properties:
+              chatId:
+                type: string
+                format: uuid
+              messages:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MessageGet'
+    
+    ChatsResponse:
+      description: got all chat ids
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              chatIds: 
+                type: array
+                items: 
+                  type: string
+                  format: uuid
+    
+    EntityNotFoundResponse:
+      description: entity with such id not found
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: string
+                example: "Chat not found"
+    
+    MatchGetResponse:
+        description: got match
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchGet'
+
+    MatchesGetResponse:
+      description: got matches history
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              matches:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatchGet'

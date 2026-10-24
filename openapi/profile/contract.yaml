@@ -23,6 +23,24 @@ paths:
           $ref: '#/components/responses/ProfileCreatedResponse'
         '422':
           $ref: '#/components/responses/UnprocessableProfileResponse'
+    patch:
+        summary: Update profile data
+        operationId: updateProfile
+        tags:
+          - Profiles
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileUpdate'
+        responses:
+          '204':
+            description: OK
+          '404':
+            $ref: '#/components/responses/ProfileNotFoundResponse'
+          '422':
+            $ref: '#/components/responses/UnprocessableProfileResponse'
 
   /profiles/{profile_id}:
     get:
@@ -43,32 +61,6 @@ paths:
         '404':
           $ref: '#/components/responses/ProfileNotFoundResponse'
 
-    patch:
-      summary: Update profile data
-      operationId: updateProfile
-      tags:
-        - Profiles
-      parameters:
-        - name: profile_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProfileUpdate'
-      responses:
-        '204':
-          description: OK
-        '404':
-          $ref: '#/components/responses/ProfileNotFoundResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableProfileResponse'
-
 components:
   schemas:
     ProfileGet:
@@ -76,6 +68,12 @@ components:
       required: [id, name, surname, age, bio, gender, tags, created_at, updated_at]
       properties:
         id: 
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        avatarId:
           type: string
           format: uuid
         name:
@@ -102,8 +100,14 @@ components:
     
     ProfileCreate:
       type: object
-      required: [name, surname, age, bio, gender, tags]
+      required: [email, name, surname, age, bio, gender, tags]
       properties:
+        email:
+          type: string
+          format: email
+        avatarId:
+          type: string
+          format: uuid
         name:
           type: string
         surname: 
@@ -123,6 +127,9 @@ components:
     ProfileUpdate:
       type: object
       properties:
+        avatarId:
+          type: string
+          format: uuid
         name:
           type: string
         surname: 

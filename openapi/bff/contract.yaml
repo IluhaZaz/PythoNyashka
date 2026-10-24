@@ -140,6 +140,40 @@ paths:
           $ref: '#/components/responses/ChatMessagesResponse'
         '404':
           $ref: '#/components/responses/EntityNotFoundResponse'
+  /media/{media_id}:
+    get:
+      summary: Get media content
+      description: |
+        Returns file bytes through BFF without redirecting to Media Service.
+        BFF checks access to the associated profile or chat before returning content.
+      operationId: getMediaById
+      tags:
+        - Media
+      parameters:
+        - name: media_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File content. Content-Type contains the actual media type of the file.
+          headers:
+            Content-Disposition:
+              description: Inline or attachment disposition with the file name.
+              schema:
+                type: string
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Access to this media is forbidden
+        '404':
+          description: Media not found
+
   /matches:
     get:
       summary: Get match
@@ -200,7 +234,8 @@ components:
           format: email
         avatar:
           type: string
-          format: binary
+          format: uuid
+          description: mediaId of avatar
         name:
           type: string
         surname: 
@@ -283,7 +318,11 @@ components:
     
     MessageCreate:
       type: object
-      required: [text, media]
+      description: |
+        Send each file as a separate multipart part named media (not media[]).
+        BFF uploads the files to Media Service and passes their UUIDs to Chat Service.
+        For a text-only message, omit media parts; BFF passes an empty media array.
+      required: [text]
       properties:
         text:
           type: string
@@ -307,9 +346,12 @@ components:
           type: string
         media:
           type: array
-          items: 
+          description: BFF media URLs; an empty array when the message has no attachments.
+          items:
             type: string
-            format: binary
+            format: uri
+            description: URL of GET /media/{media_id} on BFF.
+            example: https://api.example.com/media/550e8400-e29b-41d4-a716-446655440000
         sentAt:
           type: string
           format: date-time
@@ -337,7 +379,7 @@ components:
     ProfileGetResponse:
       description: ok
       content:
-        multipart/form-data:
+        application/json:
           schema:
             type: object
             required: [profile]
@@ -402,7 +444,7 @@ components:
     ChatMessagesResponse:
       description: got chat messages
       content:
-        multipart/form-data:
+        application/json:
           schema:
             type: object
             required: [chatId]

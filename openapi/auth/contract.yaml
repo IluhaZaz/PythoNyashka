@@ -127,7 +127,7 @@ components:
 
     RegisterRequest:
       type: object
-      required: [email, password]
+      required: [email, password, profileId]
       properties:
         email:
           type: string
@@ -137,6 +137,9 @@ components:
           type: string
           format: password
           example: "Secret123!"
+        profileId:
+          type: string
+          format: uuid
 
     RefreshTokenRequest:
       type: object

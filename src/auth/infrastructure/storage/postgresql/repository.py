@@ -68,3 +68,34 @@ class AuthRepository:
 
         await self.session.commit()
         return True
+
+    async def get_user_by_id(self, user_id: str) -> User | None:
+        return await self.session.get(User, user_id)
+
+    async def change_password(
+            self,
+            user_id: str,
+            previous_password_hash: str,
+            new_password_hash: str,
+    ) -> bool:
+        query = (
+            update(User)
+            .where(
+                User.id == user_id
+            )
+            .values(password_hash=new_password_hash)
+            .returning(User.id)
+        )
+
+        result = await self.session.execute(query)
+
+        if result.scalar_one_or_none() is None:
+            return False
+
+        await self.session.execute(
+            update(Session)
+            .where(Session.user_id == user_id)
+            .values(is_revoked=True)
+        )
+        await self.session.commit()
+        return True

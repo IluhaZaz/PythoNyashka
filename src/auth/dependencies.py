@@ -50,3 +50,12 @@ def logout_uc(
         repository=repo,
         token_service=token_service,
     )
+
+def change_password_uc(
+    repo: AuthRepository = Depends(get_repository),
+    token_service: TokenService = Depends(get_token_service),
+) -> usecase.ChangePassword:
+    return usecase.ChangePassword(
+        repository=repo,
+        token_service=token_service,
+    )

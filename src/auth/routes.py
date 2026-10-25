@@ -5,8 +5,10 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.auth import dependencies
-from src.auth.domain.schemas import RegisterRequest, LoginRequest, RefreshTokenRequest
-from src.auth.usecase import Register, Login, InvalidCredentialsError, Logout, InvalidSessionError
+from src.auth.domain.schemas import RegisterRequest, LoginRequest, RefreshTokenRequest, \
+    ChangePasswordRequest
+from src.auth.usecase import Register, Login, InvalidCredentialsError, Logout, InvalidSessionError, \
+    InvalidOldPasswordError, ChangePassword
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,7 @@ async def login(
     except InvalidCredentialsError:
         return JSONResponse(
             status_code=401,
-            content={"error": "Invalid credentials"},
+            content={"error": "Неверные данные для входа"},
         )
 
 @router.post("/logout")
@@ -67,5 +69,31 @@ async def refresh_token():
     pass
 
 @router.post("/password/reset")
-async def reset_password():
-    pass
+async def change_password(
+    req: ChangePasswordRequest,
+    usecase: ChangePassword = Depends(
+        dependencies.change_password_uc,
+    ),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+) -> Response:
+    try:
+        if credentials is None:
+            raise InvalidCredentialsError()
+
+        await usecase.execute(
+            req=req,
+            access_token=credentials.credentials,
+        )
+    except InvalidCredentialsError:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Невалидный access-токен"},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except InvalidOldPasswordError:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Неверный текущий пароль"},
+        )
+
+    return Response(status_code=204)

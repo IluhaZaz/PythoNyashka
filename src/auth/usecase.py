@@ -5,7 +5,8 @@ from datetime import datetime, timezone, timedelta
 import jwt
 from pwdlib import PasswordHash
 
-from src.auth.domain.schemas import RegisterRequest, LoginRequest, AuthTokens, RefreshTokenRequest
+from src.auth.domain.schemas import RegisterRequest, LoginRequest, AuthTokens, RefreshTokenRequest, \
+    ChangePasswordRequest
 from src.auth.infrastructure.storage.postgresql.repository import AuthRepository
 from src.auth.security import password_hasher, TokenService, DUMMY_PASSWORD_HASH
 
@@ -116,3 +117,53 @@ class Logout:
 
         if not session_found:
             raise InvalidSessionError()
+
+class InvalidOldPasswordError(Exception):
+    pass
+
+class ChangePassword:
+    def __init__(
+            self,
+            repository: AuthRepository,
+            token_service: TokenService,
+    ):
+        self.repository = repository
+        self.token_service = token_service
+        self.password_hasher = PasswordHash.recommended()
+
+    async def execute(
+            self,
+            req: ChangePasswordRequest,
+            access_token: str,
+    ) -> None:
+        try:
+            payload = self.token_service.verify_access_token(
+                access_token,
+            )
+        except jwt.InvalidTokenError as exc:
+            raise InvalidCredentialsError() from exc
+
+        user = await self.repository.get_user_by_id(
+            payload["sub"],
+        )
+
+        if user is None:
+            raise InvalidCredentialsError()
+
+        previous_hash = user.password_hash
+
+        is_valid = password_hasher.verify(req.old_password, previous_hash)
+
+        if not is_valid:
+            raise InvalidOldPasswordError()
+
+        new_hash = self.password_hasher.hash(req.new_password)
+
+        changed = await self.repository.change_password(
+            user_id=user.id,
+            previous_password_hash=previous_hash,
+            new_password_hash=new_hash,
+        )
+
+        if not changed:
+            raise InvalidOldPasswordError()

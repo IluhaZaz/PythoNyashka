@@ -18,3 +18,6 @@ class AuthTokens(BaseModel):
     refresh_token: str
     token_type: Literal["Bearer"] = "Bearer"
     expires_in: int
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str

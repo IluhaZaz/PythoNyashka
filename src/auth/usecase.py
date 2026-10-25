@@ -2,9 +2,10 @@ import hashlib
 import secrets
 from datetime import datetime, timezone, timedelta
 
+import jwt
 from pwdlib import PasswordHash
 
-from src.auth.domain.schemas import RegisterRequest, LoginRequest, AuthTokens
+from src.auth.domain.schemas import RegisterRequest, LoginRequest, AuthTokens, RefreshTokenRequest
 from src.auth.infrastructure.storage.postgresql.repository import AuthRepository
 from src.auth.security import password_hasher, TokenService, DUMMY_PASSWORD_HASH
 
@@ -78,3 +79,40 @@ class Login:
             refresh_token=refresh_token,
             expires_in=self.token_service.config.access_ttl_seconds,
         )
+
+class InvalidSessionError(Exception):
+    pass
+
+
+class Logout:
+    def __init__(
+        self,
+        repository: AuthRepository,
+        token_service: TokenService,
+    ):
+        self.repository = repository
+        self.token_service = token_service
+
+    async def execute(
+        self,
+        req: RefreshTokenRequest,
+        access_token: str,
+    ) -> None:
+        try:
+            payload = self.token_service.verify_access_token(
+                access_token,
+            )
+        except jwt.InvalidTokenError as exc:
+            raise InvalidSessionError() from exc
+
+        refresh_token_hash = hashlib.sha256(
+            req.refresh_token.encode()
+        ).hexdigest()
+
+        session_found = await self.repository.revoke_session(
+            user_id=payload["sub"],
+            refresh_token_hash=refresh_token_hash,
+        )
+
+        if not session_found:
+            raise InvalidSessionError()

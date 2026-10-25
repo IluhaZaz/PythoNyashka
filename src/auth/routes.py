@@ -1,15 +1,21 @@
 import logging
 
 from fastapi import APIRouter, Body, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.auth import dependencies
-from src.auth.domain.schemas import RegisterRequest, LoginRequest
-from src.auth.usecase import Register, Login, InvalidCredentialsError
+from src.auth.domain.schemas import RegisterRequest, LoginRequest, RefreshTokenRequest
+from src.auth.usecase import Register, Login, InvalidCredentialsError, Logout, InvalidSessionError
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+bearer = HTTPBearer(
+    auto_error=False,
+    bearerFormat="JWT",
+)
 
 
 @router.post("/login")
@@ -26,8 +32,27 @@ async def login(
         )
 
 @router.post("/logout")
-async def logout():
-    pass
+async def logout(
+    req: RefreshTokenRequest,
+    usecase: Logout = Depends(dependencies.logout_uc),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+) -> Response:
+    try:
+        if credentials is None:
+            raise InvalidSessionError()
+
+        await usecase.execute(
+            req=req,
+            access_token=credentials.credentials,
+        )
+    except InvalidSessionError:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Невалидный токен или сессия"},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return Response(status_code=204)
 
 @router.post("/register")
 async def register(

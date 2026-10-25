@@ -45,3 +45,30 @@ class TokenService:
             self.config.jwt_secret.get_secret_value(),
             algorithm="HS256",
         )
+
+    def verify_access_token(self, token: str) -> dict:
+        payload = jwt.decode(
+            token,
+            key=self.config.jwt_secret.get_secret_value(),
+            algorithms=["HS256"],
+            issuer="auth",
+            audience="bff",
+            options={
+                "require": [
+                    "exp",
+                    "iat",
+                    "sub",
+                    "iss",
+                    "aud",
+                    "token_use",
+                ],
+            },
+        )
+
+        if payload["token_use"] != "access":
+            raise jwt.InvalidTokenError("Expected access token")
+
+        if not isinstance(payload["sub"], str) or not payload["sub"]:
+            raise jwt.InvalidTokenError("Invalid user ID")
+
+        return payload

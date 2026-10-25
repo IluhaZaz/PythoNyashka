@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -44,3 +44,27 @@ class AuthRepository:
 
         self.session.add(session)
         await self.session.commit()
+
+    async def revoke_session(
+            self,
+            user_id: str,
+            refresh_token_hash: str,
+    ) -> bool:
+        query = (
+            update(Session)
+            .where(
+                Session.user_id == user_id,
+                Session.refresh_token_hash == refresh_token_hash,
+            )
+            .values(is_revoked=True)
+            .returning(Session.id)
+        )
+
+        result = await self.session.execute(query)
+        session_id = result.scalar_one_or_none()
+
+        if session_id is None:
+            return False
+
+        await self.session.commit()
+        return True

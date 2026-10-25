@@ -4,8 +4,8 @@ from fastapi import APIRouter, Body, Depends
 from fastapi.responses import JSONResponse
 
 from src.auth import dependencies
-from src.auth.domain.schemas import RegisterRequest
-from src.auth.usecase import Register
+from src.auth.domain.schemas import RegisterRequest, LoginRequest
+from src.auth.usecase import Register, Login, InvalidCredentialsError
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +13,17 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/login")
-async def login():
-    pass
+async def login(
+    req: LoginRequest,
+    usecase: Login = Depends(dependencies.login_uc),
+):
+    try:
+        return await usecase.execute(req)
+    except InvalidCredentialsError:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Invalid credentials"},
+        )
 
 @router.post("/logout")
 async def logout():

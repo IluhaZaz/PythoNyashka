@@ -14,7 +14,15 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MatchGetResponse'
-
+      parameters:
+      - name: profile_id
+        in: query
+        required: true
+        description: Acting profile ID. Set by the BFF from the validated JWT.
+        schema:
+          type: string
+          format: uuid
+      description: Get the next match for profile_id.
   /matches/history:
     get:
       summary: Get matches history
@@ -22,18 +30,25 @@ paths:
       tags:
       - Matches
       parameters:
-        - name: offset
-          in: query
-          schema:
-            type: integer
-        - name: limit
-          in: query
-          schema:
-            type: integer
+      - name: profile_id
+        in: query
+        required: true
+        description: Acting profile ID. Set by the BFF from the validated JWT.
+        schema:
+          type: string
+          format: uuid
+      - name: offset
+        in: query
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        schema:
+          type: integer
       responses:
         '200':
           $ref: '#/components/responses/MatchesGetResponse'
-  
+      description: Get the match history for profile_id (initiatorProfileId).
   /matches/{match_id}/like:
     post:
       summary: Accept match
@@ -43,7 +58,21 @@ paths:
       responses:
         '204':
           description: OK
-  
+      parameters:
+      - name: match_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: profile_id
+        in: query
+        required: true
+        description: Acting profile ID. Set by the BFF from the validated JWT.
+        schema:
+          type: string
+          format: uuid
+      description: Apply the response to the match belonging to profile_id (initiatorProfileId).
   /matches/{match_id}/dislike:
     post:
       summary: Reject match
@@ -53,8 +82,21 @@ paths:
       responses:
         '204':
           description: OK
-
-
+      parameters:
+      - name: match_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: profile_id
+        in: query
+        required: true
+        description: Acting profile ID. Set by the BFF from the validated JWT.
+        schema:
+          type: string
+          format: uuid
+      description: Apply the response to the match belonging to profile_id (initiatorProfileId).
 components:
   schemas:
     MatchGet:
@@ -74,15 +116,14 @@ components:
           enum: ['noResponse', 'accepted', 'rejected']
         createdAt:
           type: string
-          format: datetime
+          format: date-time
   responses:
     MatchGetResponse:
-        description: got match
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MatchGet'
-
+      description: got match
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MatchGet'
     MatchesGetResponse:
       description: got matches history
       content:
@@ -94,5 +135,3 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/MatchGet'
-
-

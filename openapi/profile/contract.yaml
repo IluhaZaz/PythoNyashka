@@ -4,70 +4,73 @@ info:
   description: |
     Microservice responsible for storing, managing, and providing profile data to other microservices.
   version: 1.0.0
-
 paths:
   /profiles:
     post:
       summary: Create a new profile
       operationId: createProfile
-      tags:
-        - Profiles
+      tags: [Profiles]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProfileCreate' 
+              $ref: '#/components/schemas/ProfileCreate'
       responses:
         '201':
           $ref: '#/components/responses/ProfileCreatedResponse'
         '422':
           $ref: '#/components/responses/UnprocessableProfileResponse'
     patch:
-        summary: Update profile data
-        operationId: updateProfile
-        tags:
-          - Profiles
-        requestBody:
-          required: true
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProfileUpdate'
-        responses:
-          '204':
-            description: OK
-          '404':
-            $ref: '#/components/responses/ProfileNotFoundResponse'
-          '422':
-            $ref: '#/components/responses/UnprocessableProfileResponse'
-
+      summary: Update profile data
+      operationId: updateProfile
+      tags: [Profiles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '204':
+          description: OK
+        '404':
+          $ref: '#/components/responses/ProfileNotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableProfileResponse'
+      parameters:
+      - name: profile_id
+        in: query
+        required: true
+        description: ID of the profile to update. Set by the BFF from the validated JWT, mapped to the profile ID if needed.
+        schema:
+          type: string
+          format: uuid
+      description: Update the current user profile identified by profile_id. The BFF supplies profile_id; the request body contains only profile fields to change.
   /profiles/{profile_id}:
     get:
       summary: Get profile by ID
       operationId: getProfileById
-      tags:
-        - Profiles
+      tags: [Profiles]
       parameters:
-        - name: profile_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: profile_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           $ref: '#/components/responses/ProfileGetResponse'
         '404':
           $ref: '#/components/responses/ProfileNotFoundResponse'
-
 components:
   schemas:
     ProfileGet:
       type: object
       required: [id, name, surname, age, bio, gender, tags, created_at, updated_at]
       properties:
-        id: 
+        id:
           type: string
           format: uuid
         email:
@@ -78,7 +81,7 @@ components:
           format: uuid
         name:
           type: string
-        surname: 
+        surname:
           type: string
         age:
           type: integer
@@ -93,14 +96,13 @@ components:
         updated_at:
           type: string
           format: date-time
-        tags: 
+        tags:
           type: array
-          items: 
+          items:
             type: string
-    
     ProfileCreate:
       type: object
-      required: [email, name, surname, age, bio, gender, tags]
+      required: [id, email, name, surname, age, bio, gender, tags]
       properties:
         email:
           type: string
@@ -110,7 +112,7 @@ components:
           format: uuid
         name:
           type: string
-        surname: 
+        surname:
           type: string
         age:
           type: integer
@@ -119,11 +121,10 @@ components:
         gender:
           type: string
           enum: [male, female]
-        tags: 
+        tags:
           type: array
-          items: 
+          items:
             type: string
-
     ProfileUpdate:
       type: object
       properties:
@@ -132,7 +133,7 @@ components:
           format: uuid
         name:
           type: string
-        surname: 
+        surname:
           type: string
         age:
           type: integer
@@ -141,11 +142,10 @@ components:
         gender:
           type: string
           enum: [male, female]
-        tags: 
+        tags:
           type: array
-          items: 
+          items:
             type: string
-
   responses:
     ProfileGetResponse:
       description: ok
@@ -156,8 +156,7 @@ components:
             required: [profile]
             properties:
               profile:
-                $ref: "#/components/schemas/ProfileGet"
-
+                $ref: '#/components/schemas/ProfileGet'
     ProfileCreatedResponse:
       description: profile created
       content:
@@ -169,7 +168,6 @@ components:
               id:
                 type: string
                 format: uuid
-    
     ProfileNotFoundResponse:
       description: profile with such id not found
       content:
@@ -180,8 +178,7 @@ components:
             properties:
               error:
                 type: string
-                example: "Profile not found"
-    
+                example: Profile not found
     UnprocessableProfileResponse:
       description: profile validation error
       content:

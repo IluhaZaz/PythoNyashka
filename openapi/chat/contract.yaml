@@ -28,6 +28,14 @@ paths:
       operationId: getChats
       tags: 
         - Chats
+      parameters:
+      - name: profile_id
+        in: query
+        required: true
+        description: Acting profile ID. Set by the BFF from the validated JWT.
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           $ref: '#/components/responses/ChatsResponse'
@@ -102,6 +110,9 @@ components:
       type: object
       required: [text, media]
       properties:
+        senderId:
+          type: string
+          format: uuid
         text:
           type: string
         media:

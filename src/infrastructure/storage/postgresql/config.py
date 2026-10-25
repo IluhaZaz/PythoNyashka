@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class DBConfig(BaseSettings):
@@ -6,4 +6,6 @@ class DBConfig(BaseSettings):
     user: str = "admin"
     password: str = "pass"
     port: str = '5442'
-    db: str = 'pitonyashka'
+    name: str = 'pitonyashka'
+
+    model_config = SettingsConfigDict(env_prefix="db_")

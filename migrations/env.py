@@ -17,7 +17,7 @@ config = context.config
 config.set_main_option(
     'sqlalchemy.url',
     f"postgresql+psycopg2://{db_config.user}:{db_config.password}"
-    f"@{db_config.host}:{db_config.port}/{db_config.db}",
+    f"@{db_config.host}:{db_config.port}/{db_config.name}",
 )
 
 # Interpret the config file for Python logging.

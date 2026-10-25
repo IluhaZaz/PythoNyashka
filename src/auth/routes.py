@@ -8,7 +8,7 @@ from src.auth import dependencies
 from src.auth.domain.schemas import RegisterRequest, LoginRequest, RefreshTokenRequest, \
     ChangePasswordRequest
 from src.auth.usecase import Register, Login, InvalidCredentialsError, Logout, InvalidSessionError, \
-    InvalidOldPasswordError, ChangePassword
+    InvalidOldPasswordError, ChangePassword, Refresh, InvalidRefreshTokenError
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +65,17 @@ async def register(
     return JSONResponse(status_code=201, content={"user_id": id_})
 
 @router.post("/refresh")
-async def refresh_token():
-    pass
+async def refresh_token(
+    req: RefreshTokenRequest,
+    usecase: Refresh = Depends(dependencies.refresh_uc),
+):
+    try:
+        return await usecase.execute(req)
+    except InvalidRefreshTokenError:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Невалидный или истёкший refresh-токен"},
+        )
 
 @router.post("/password/reset")
 async def change_password(

@@ -167,3 +167,52 @@ class ChangePassword:
 
         if not changed:
             raise InvalidOldPasswordError()
+
+
+class InvalidRefreshTokenError(Exception):
+    pass
+
+
+class Refresh:
+    def __init__(
+        self,
+        repository: AuthRepository,
+        token_service: TokenService,
+    ):
+        self.repository = repository
+        self.token_service = token_service
+
+    async def execute(self, req: RefreshTokenRequest) -> AuthTokens:
+        old_hash = hashlib.sha256(
+            req.refresh_token.encode()
+        ).hexdigest()
+
+        user = await self.repository.get_user_by_refresh_hash(old_hash)
+
+        if user is None:
+            raise InvalidRefreshTokenError()
+
+        new_refresh_token = secrets.token_urlsafe(32)
+        new_hash = hashlib.sha256(
+            new_refresh_token.encode()
+        ).hexdigest()
+
+        access_token = self.token_service.create_access_token(
+            user_id=user.id,
+            profile_id=user.profile_id,
+            now=datetime.now(timezone.utc),
+        )
+
+        rotated = await self.repository.rotate_refresh_token(
+            old_hash=old_hash,
+            new_hash=new_hash,
+        )
+
+        if not rotated:
+            raise InvalidRefreshTokenError()
+
+        return AuthTokens(
+            access_token=access_token,
+            refresh_token=new_refresh_token,
+            expires_in=self.token_service.config.access_ttl_seconds,
+        )

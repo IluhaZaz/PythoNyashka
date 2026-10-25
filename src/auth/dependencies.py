@@ -59,3 +59,12 @@ def change_password_uc(
         repository=repo,
         token_service=token_service,
     )
+
+def refresh_uc(
+    repo: AuthRepository = Depends(get_repository),
+    token_service: TokenService = Depends(get_token_service),
+) -> usecase.Refresh:
+    return usecase.Refresh(
+        repository=repo,
+        token_service=token_service,
+    )

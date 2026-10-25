@@ -1,0 +1,142 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  description: |
+    Internal service for creating, listing, and marking notifications as read.
+  version: 1.0.0
+paths:
+  /notifications:
+    get:
+      summary: Get profile notifications
+      operationId: getNotifications
+      tags: [Notifications]
+      parameters:
+        - $ref: '#/components/parameters/ProfileId'
+        - name: limit
+          in: query
+          description: Maximum number of notifications to return.
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          description: Number of notifications to skip.
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notifications ordered by created_at descending, then id descending. Applies offset and limit; returns an empty list if no notifications remain.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [notifications]
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NotificationGet'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    post:
+      summary: Create a notification
+      operationId: createNotification
+      tags: [Notifications]
+      description: The service generates id and created_at and sets is_read to false.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationCreate'
+      responses:
+        '201':
+          description: Notification created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /notifications/{notification_id}/read:
+    post:
+      summary: Mark a notification as read
+      operationId: readNotification
+      tags: [Notifications]
+      description: |
+        Marks the notification as read only if it belongs to profile_id.
+        Repeated calls return 204. Returns 404 if absent or owned by another profile.
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/ProfileId'
+      responses:
+        '204':
+          description: Notification marked as read or already read
+        '404':
+          description: Notification not found for this profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+components:
+  parameters:
+    ProfileId:
+      name: profile_id
+      in: query
+      required: true
+      description: Current profile ID supplied by the BFF from the validated JWT.
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    NotificationCreate:
+      type: object
+      required: [profile_id, text]
+      properties:
+        profile_id:
+          type: string
+          format: uuid
+          description: Recipient profile ID.
+        text:
+          type: string
+    NotificationGet:
+      type: object
+      required: [id, profile_id, text, is_read, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        profile_id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+  responses:
+    ValidationError:
+      description: Invalid request parameters or body
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

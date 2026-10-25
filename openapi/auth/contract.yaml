@@ -97,8 +97,8 @@ paths:
             schema:
               $ref: '#/components/schemas/PasswordResetRequest'
       responses:
-        '200':
-          $ref: '#/components/responses/MessageResponse'
+        '204':
+          description: OK
         '400':
           $ref: '#/components/responses/BadRequestResponse'
         '422':
@@ -127,7 +127,7 @@ components:
 
     RegisterRequest:
       type: object
-      required: [email, password]
+      required: [email, password, profileId]
       properties:
         email:
           type: string
@@ -137,6 +137,9 @@ components:
           type: string
           format: password
           example: "Secret123!"
+        profileId:
+          type: string
+          format: uuid
 
     RefreshTokenRequest:
       type: object
@@ -150,19 +153,15 @@ components:
       type: object
       required: [email, code, new_password]
       properties:
-        email:
+        old_password:
           type: string
-          format: email
-          example: "user@example.com"
-        code:
-          type: string
-          description: Confirmation code sent to email
-          example: "123456"
+          format: password
+          description: Old password
+          example: "NewSecret123!"
         new_password:
           type: string
           format: password
           description: New password
-          example: "NewSecret123!"
 
     AuthTokens:
       type: object

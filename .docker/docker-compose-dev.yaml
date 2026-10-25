@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5442:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - public
+      - backend
+
+  auth:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileAuth
+    restart: unless-stopped
+    command: uvicorn src.auth.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ../src/auth:/app/src/auth
+      - ../src/infrastructure:/app/src/infrastructure
+    networks:
+      - public
+      - backend
+
+volumes:
+  postgres_data:
+networks:
+  public:
+  backend:
+    internal: true

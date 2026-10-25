@@ -1,0 +1,97 @@
+openapi: 3.0.3
+
+info:
+  title: Media Service API
+  description: Service responsible for storing and serving media files.
+  version: 1.0.0
+
+paths:
+  /media:
+    post:
+      summary: Upload a media file
+      operationId: uploadMedia
+      tags:
+        - Media
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MediaCreate'
+      responses:
+        '201':
+          $ref: "#/components/responses/MediaCreatedResponse"
+        '400':
+          description: Missing file or malformed multipart request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: File exceeds the configured size limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Unsupported file type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /media/{media_id}:
+    get:
+      summary: Get media file by ID
+      operationId: getMediaById
+      tags:
+        - Media
+      parameters:
+        - name: media_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Media file content
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Media file not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    MediaCreate:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          format: binary
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+  responses:
+    MediaCreatedResponse:
+      description: media uploaded
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [id]
+            properties:
+              id:
+                type: string
+                format: uuid

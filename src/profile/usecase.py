@@ -6,7 +6,6 @@ class ProfileNotFoundError(Exception):
     """Выбрасывается, когда профиль с указанным ID не найден."""
     pass
 
-
 class CreateProfile:
     def __init__(self, repository: ProfileRepository):
         self.repository = repository
@@ -47,7 +46,6 @@ class GetProfile:
         if profile is None:
             raise ProfileNotFoundError()
         
-        # Маппим snake_case (БД) -> camelCase (Pydantic схема)
         return ProfileGet(
             id=profile.id,
             email=profile.email,

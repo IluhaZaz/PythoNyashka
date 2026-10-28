@@ -11,10 +11,8 @@ class ProfileRepository:
 
     async def create(self, profile_data: ProfileCreate) -> str:
         """Создает новый профиль и возвращает его ID."""
-        # mode='json' автоматически конвертирует UUID -> str и Enum -> str!
         data = profile_data.model_dump(mode='json')
         
-        # Маппинг avatarId -> avatar_id для БД
         if "avatarId" in data:
             data["avatar_id"] = data.pop("avatarId")
         else:
@@ -22,7 +20,7 @@ class ProfileRepository:
             
         profile = Profile(**data)
         self.session.add(profile)
-        await self.session.flush()  # Получаем ID до коммита
+        await self.session.flush()  
         await self.session.commit()
         return profile.id
 
@@ -37,13 +35,11 @@ class ProfileRepository:
         Обновляет профиль. 
         Возвращает True, если профиль найден и обновлен, иначе False.
         """
-        # mode='json' конвертирует типы, exclude_unset=True берет только измененные поля
         data = update_data.model_dump(mode='json', exclude_unset=True)
         
         if not data:
-            return True  # Нечего обновлять, считаем успехом
+            return True
 
-        # Маппинг avatarId -> avatar_id для БД
         if "avatarId" in data:
             data["avatar_id"] = data.pop("avatarId")
 

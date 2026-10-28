@@ -19,12 +19,22 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/ProfileCreatedResponse'
+        '409':
+          $ref: '#/components/responses/ProfileAlreadyExistsResponse'
         '422':
           $ref: '#/components/responses/UnprocessableProfileResponse'
     patch:
       summary: Update profile data
+      description: Update the current user profile identified by profile_id. The BFF supplies profile_id; the request body contains only profile fields to change.
       operationId: updateProfile
       tags: [Profiles]
+      parameters:
+      - name: profile_id
+        in: query
+        required: true
+        description: ID of the profile to update. Set by the BFF from the validated JWT, mapped to the profile ID if needed.
+        schema:
+          type: string
       requestBody:
         required: true
         content:
@@ -38,15 +48,6 @@ paths:
           $ref: '#/components/responses/ProfileNotFoundResponse'
         '422':
           $ref: '#/components/responses/UnprocessableProfileResponse'
-      parameters:
-      - name: profile_id
-        in: query
-        required: true
-        description: ID of the profile to update. Set by the BFF from the validated JWT, mapped to the profile ID if needed.
-        schema:
-          type: string
-          format: uuid
-      description: Update the current user profile identified by profile_id. The BFF supplies profile_id; the request body contains only profile fields to change.
   /profiles/{profile_id}:
     get:
       summary: Get profile by ID
@@ -58,7 +59,6 @@ paths:
         required: true
         schema:
           type: string
-          format: uuid
       responses:
         '200':
           $ref: '#/components/responses/ProfileGetResponse'
@@ -72,13 +72,10 @@ components:
       properties:
         id:
           type: string
-          format: uuid
         email:
           type: string
-          format: email
-        avatarId:
+        avatar_id:
           type: string
-          format: uuid
         name:
           type: string
         surname:
@@ -102,14 +99,12 @@ components:
             type: string
     ProfileCreate:
       type: object
-      required: [id, email, name, surname, age, bio, gender, tags]
+      required: [email, name, surname, age, bio, gender, tags]
       properties:
         email:
           type: string
-          format: email
-        avatarId:
+        avatar_id:
           type: string
-          format: uuid
         name:
           type: string
         surname:
@@ -128,9 +123,8 @@ components:
     ProfileUpdate:
       type: object
       properties:
-        avatarId:
+        avatar_id:
           type: string
-          format: uuid
         name:
           type: string
         surname:
@@ -167,7 +161,17 @@ components:
             properties:
               id:
                 type: string
-                format: uuid
+    ProfileAlreadyExistsResponse:
+      description: profile with such email already exists
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: string
+                example: email already used
     ProfileNotFoundResponse:
       description: profile with such id not found
       content:

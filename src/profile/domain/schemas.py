@@ -1,9 +1,8 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional
-from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 
 class GenderEnum(str, Enum):
@@ -12,15 +11,14 @@ class GenderEnum(str, Enum):
 
 
 class ProfileCreate(BaseModel):
-    id: UUID
-    email: EmailStr
+    email: str
     name: str = Field(min_length=1, max_length=100)
     surname: str = Field(min_length=1, max_length=100)
     age: int = Field(gt=0, lt=150)
     bio: str = Field(max_length=1000)
     gender: GenderEnum
     tags: list[str] = Field(default_factory=list)
-    avatarId: Optional[UUID] = None
+    avatar_id: Optional[str] = None
 
 
 class ProfileUpdate(BaseModel):
@@ -30,19 +28,19 @@ class ProfileUpdate(BaseModel):
     bio: Optional[str] = Field(default=None, max_length=1000)
     gender: Optional[GenderEnum] = None
     tags: Optional[list[str]] = None
-    avatarId: Optional[UUID] = None
+    avatar_id: Optional[str] = None
 
 
 class ProfileGet(BaseModel):
-    id: UUID
-    email: EmailStr
+    id: str
+    email: str
     name: str
     surname: str
     age: int
     bio: str
     gender: GenderEnum
     tags: list[str]
-    avatarId: Optional[UUID]
+    avatar_id: Optional[str]
     created_at: datetime
     updated_at: datetime
 

@@ -45,6 +45,25 @@ services:
       - public
       - backend
 
+  profile:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileProfile
+    restart: unless-stopped
+    command: uvicorn src.profile.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8001:8000"
+    env_file:
+      - .env
+    volumes:
+      - ../src/profile:/app/src/profile
+      - ../src/infrastructure:/app/src/infrastructure
+    networks:
+      - public
+      - backend
+    depends_on:
+      - postgres
+
   media:
     build:
       context: ..

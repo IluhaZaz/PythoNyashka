@@ -218,3 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# методички
+adding-service-guide.md 
+python-service-guide.md
+notes.txt

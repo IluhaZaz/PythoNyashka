@@ -18,6 +18,7 @@ pwdlib = {extras = ["argon2"], version = "^0.3.1"}
 asyncpg = "^0.32.0"
 pyjwt = "^2.15.1"
 boto3 = "^1.43.120"
+python-multipart = "^0.0.32"
 
 [[tool.poetry.source]]
 name = "PyPI"

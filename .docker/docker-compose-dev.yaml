@@ -13,7 +13,7 @@ services:
       - backend
 
   minio:
-    image: minio/minio:latest
+    image: pgsty/silo
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:

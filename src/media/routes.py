@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import quote
 from fastapi import APIRouter, Depends, UploadFile, File
 from fastapi.responses import JSONResponse, Response
 
@@ -46,7 +47,7 @@ async def get_media_by_id(
             content=file_bytes,
             media_type=content_type,
             headers={
-                "Content-Disposition": f'inline; filename="{filename}"'
+                "Content-Disposition": f"inline; filename*=UTF-8''{quote(filename, safe='')}"
             }
         )
     except MediaNotFoundError:

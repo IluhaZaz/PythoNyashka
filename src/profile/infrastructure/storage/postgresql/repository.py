@@ -14,8 +14,7 @@ class ProfileRepository:
 
     async def create(self, profile_data: ProfileCreate) -> str:
         data = profile_data.model_dump(mode='json')
-        data["id"] = str(uuid.uuid4())
-        
+
         profile = Profile(**data)
         self.session.add(profile)
         try:

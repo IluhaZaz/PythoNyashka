@@ -53,6 +53,4 @@ async def get_profile(
             content={"error": "Profile not found"},
         )
     
-    # ГЛАВНОЕ ИСПРАВЛЕНИЕ: profile - это уже Pydantic модель ProfileGet.
-    # mode='json' превращает UUID, Enum и datetime в обычные строки для JSON.
     return JSONResponse(status_code=200, content={"profile": profile.model_dump(mode='json')})

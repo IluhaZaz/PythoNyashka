@@ -9,6 +9,7 @@ from src.infrastructure.storage.postgresql.config import DBConfig
 from src.infrastructure.storage.postgresql.models import Base
 from src.auth.infrastructure.storage.postgresql.models import User
 from src.profile.infrastructure.storage.postgresql.models import Profile
+from src.media.infrastructure.storage.postgresql.models import MediaFile
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

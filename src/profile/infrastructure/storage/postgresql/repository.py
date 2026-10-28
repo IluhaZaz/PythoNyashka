@@ -11,11 +11,14 @@ class ProfileRepository:
 
     async def create(self, profile_data: ProfileCreate) -> str:
         """Создает новый профиль и возвращает его ID."""
-        # Преобразуем Pydantic модель в dict для SQLAlchemy
-        # avatarId из схемы маппим в avatar_id для БД
-        data = profile_data.model_dump()
+        # mode='json' автоматически конвертирует UUID -> str и Enum -> str!
+        data = profile_data.model_dump(mode='json')
+        
+        # Маппинг avatarId -> avatar_id для БД
         if "avatarId" in data:
             data["avatar_id"] = data.pop("avatarId")
+        else:
+            data["avatar_id"] = None
             
         profile = Profile(**data)
         self.session.add(profile)
@@ -32,11 +35,10 @@ class ProfileRepository:
     async def update(self, profile_id: str, update_data: ProfileUpdate) -> bool:
         """
         Обновляет профиль. 
-        Использует exclude_unset=True, чтобы обновлять только переданные поля (PATCH).
         Возвращает True, если профиль найден и обновлен, иначе False.
         """
-        # Получаем только те поля, которые были явно переданы в запросе
-        data = update_data.model_dump(exclude_unset=True)
+        # mode='json' конвертирует типы, exclude_unset=True берет только измененные поля
+        data = update_data.model_dump(mode='json', exclude_unset=True)
         
         if not data:
             return True  # Нечего обновлять, считаем успехом

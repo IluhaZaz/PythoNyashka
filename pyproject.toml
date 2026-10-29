@@ -30,6 +30,7 @@ priority = "primary"
 poethepoet = "^0.48.0"
 ruff = "^0.16.10"
 mypy = "^2.4.0"
+openapi-python-client = "^0.29.1"
 
 [tool.poe.tasks.ruff]
 shell = "ruff check --no-cache --show-fixes --output-format grouped src"

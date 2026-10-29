@@ -259,3 +259,6 @@ components:
                     reason:
                       type: string
                       example: "Must be a valid email address"
+
+
+#poetry run openapi-python-client generate --path openapi/auth/contract.yaml --meta none --overwrite --output-path generated/clients/auth

@@ -57,7 +57,7 @@ paths:
         '200':
           description: Media file content
           content:
-            '*/*':
+            application/octet-stream:
               schema:
                 type: string
                 format: binary
@@ -95,3 +95,5 @@ components:
               id:
                 type: string
                 format: uuid
+
+#poetry run openapi-python-client generate --path openapi/media/contract.yaml --meta none --overwrite --output-path generated/clients/media

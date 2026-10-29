@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse, Response
 
 from src.profile import dependencies
-from src.profile.domain.schemas import ProfileCreate, ProfileUpdate
+from src.profile.domain.schemas import ProfileCreate, ProfileUpdate, ProfileGet
 from src.profile.usecase import (
     CreateProfile, UpdateProfile, GetProfile,
     ProfileNotFoundError, ProfileAlreadyExistsError,
@@ -50,7 +50,7 @@ async def update_profile(
 async def get_profile(
     profile_id: str,
     usecase: GetProfile = Depends(dependencies.get_profile_uc),
-):
+) -> ProfileGet:
     try:
         profile = await usecase.execute(profile_id)
     except ProfileNotFoundError:

@@ -49,6 +49,20 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableProfileResponse'
   /profiles/{profile_id}:
+    delete:
+      summary: Delete a profile after failed registration
+      description: Internal compensation operation used by BFF. Deleting an absent profile also returns 204.
+      operationId: deleteProfile
+      tags: [Profiles]
+      parameters:
+      - name: profile_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Profile deleted or already absent. No response body.
     get:
       summary: Get profile by ID
       operationId: getProfileById

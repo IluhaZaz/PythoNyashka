@@ -33,6 +33,14 @@ class UpdateProfile:
             raise ProfileNotFoundError()
 
 
+class DeleteProfile:
+    def __init__(self, repository: ProfileRepository) -> None:
+        self.repository = repository
+
+    async def execute(self, profile_id: str) -> None:
+        await self.repository.delete(profile_id)
+
+
 class GetProfile:
     def __init__(self, repository: ProfileRepository):
         self.repository = repository

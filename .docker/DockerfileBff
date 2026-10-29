@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    POETRY_VERSION=1.8.3
+
+COPY poetry.lock pyproject.toml ./
+
+RUN python -m pip install "poetry==$POETRY_VERSION" && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-cache --no-root --only main
+
+COPY src/bff/ src/bff/
+COPY generated/clients/auth/ generated/clients/auth/
+COPY generated/clients/profile/ generated/clients/profile/
+COPY generated/clients/media/ generated/clients/media/
+
+CMD ["uvicorn", "src.bff.main:app", "--host", "0.0.0.0", "--port", "8000"]

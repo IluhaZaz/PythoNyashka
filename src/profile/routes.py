@@ -1,13 +1,18 @@
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse, Response
 
 from src.profile import dependencies
-from src.profile.domain.schemas import ProfileCreate, ProfileUpdate, ProfileGet
+from src.profile.domain.schemas import ProfileCreate, ProfileGet, ProfileUpdate
 from src.profile.usecase import (
-    CreateProfile, UpdateProfile, GetProfile,
-    ProfileNotFoundError, ProfileAlreadyExistsError,
+    CreateProfile,
+    DeleteProfile,
+    GetProfile,
+    ProfileAlreadyExistsError,
+    ProfileNotFoundError,
+    UpdateProfile,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,6 +48,15 @@ async def update_profile(
             status_code=404,
             content={"error": "Profile not found"},
         )
+    return Response(status_code=204)
+
+
+@router.delete("/{profile_id}", status_code=204)
+async def delete_profile(
+    profile_id: str,
+    usecase: Annotated[DeleteProfile, Depends(dependencies.delete_profile_uc)],
+) -> Response:
+    await usecase.execute(profile_id)
     return Response(status_code=204)
 
 

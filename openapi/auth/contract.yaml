@@ -23,8 +23,6 @@ paths:
           $ref: '#/components/responses/AuthTokenResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableAuthResponse'
 
   /auth/logout:
     post:
@@ -127,7 +125,7 @@ components:
 
     RegisterRequest:
       type: object
-      required: [email, password, profileId]
+      required: [email, password, profile_id]
       properties:
         email:
           type: string
@@ -137,7 +135,7 @@ components:
           type: string
           format: password
           example: "Secret123!"
-        profileId:
+        profile_id:
           type: string
           format: uuid
 

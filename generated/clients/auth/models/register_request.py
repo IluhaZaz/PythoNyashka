@@ -37,7 +37,7 @@ class RegisterRequest:
             {
                 "email": email,
                 "password": password,
-                "profileId": profile_id,
+                "profile_id": profile_id,
             }
         )
 
@@ -50,7 +50,7 @@ class RegisterRequest:
 
         password = d.pop("password")
 
-        profile_id = UUID(d.pop("profileId"))
+        profile_id = UUID(d.pop("profile_id"))
 
         register_request = cls(
             email=email,

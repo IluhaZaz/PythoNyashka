@@ -3,8 +3,6 @@
 from .auth_tokens import AuthTokens
 from .login_request import LoginRequest
 from .login_response_401 import LoginResponse401
-from .login_response_422 import LoginResponse422
-from .login_response_422_errors_item import LoginResponse422ErrorsItem
 from .logout_response_401 import LogoutResponse401
 from .password_reset_request import PasswordResetRequest
 from .refresh_token_request import RefreshTokenRequest
@@ -22,8 +20,6 @@ __all__ = (
     "AuthTokens",
     "LoginRequest",
     "LoginResponse401",
-    "LoginResponse422",
-    "LoginResponse422ErrorsItem",
     "LogoutResponse401",
     "PasswordResetRequest",
     "RefreshTokenRequest",

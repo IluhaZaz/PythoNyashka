@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +31,10 @@ class ProfileRepository:
         if profile is None:
             return None
         return ProfileGet.model_validate(profile, from_attributes=True)
+
+    async def delete(self, profile_id: str) -> None:
+        await self.session.execute(delete(Profile).where(Profile.id == profile_id))
+        await self.session.commit()
 
     async def update(self, profile_id: str, update_data: ProfileUpdate) -> bool:
         data = update_data.model_dump(mode='json', exclude_unset=True)

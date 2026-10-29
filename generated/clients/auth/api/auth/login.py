@@ -8,7 +8,6 @@ from ...client import AuthenticatedClient, Client
 from ...models.auth_tokens import AuthTokens
 from ...models.login_request import LoginRequest
 from ...models.login_response_401 import LoginResponse401
-from ...models.login_response_422 import LoginResponse422
 from ...types import Response
 
 
@@ -33,7 +32,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> AuthTokens | LoginResponse401 | LoginResponse422 | None:
+) -> AuthTokens | LoginResponse401 | None:
     if response.status_code == 200:
         response_200 = AuthTokens.from_dict(response.json())
 
@@ -44,11 +43,6 @@ def _parse_response(
 
         return response_401
 
-    if response.status_code == 422:
-        response_422 = LoginResponse422.from_dict(response.json())
-
-        return response_422
-
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -57,7 +51,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[AuthTokens | LoginResponse401 | LoginResponse422]:
+) -> Response[AuthTokens | LoginResponse401]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -70,7 +64,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: LoginRequest,
-) -> Response[AuthTokens | LoginResponse401 | LoginResponse422]:
+) -> Response[AuthTokens | LoginResponse401]:
     """User login
 
     Args:
@@ -81,7 +75,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[AuthTokens | LoginResponse401 | LoginResponse422]
+        Response[AuthTokens | LoginResponse401]
     """
 
     kwargs = _get_kwargs(
@@ -99,7 +93,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: LoginRequest,
-) -> AuthTokens | LoginResponse401 | LoginResponse422 | None:
+) -> AuthTokens | LoginResponse401 | None:
     """User login
 
     Args:
@@ -110,7 +104,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        AuthTokens | LoginResponse401 | LoginResponse422
+        AuthTokens | LoginResponse401
     """
 
     return sync_detailed(
@@ -123,7 +117,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: LoginRequest,
-) -> Response[AuthTokens | LoginResponse401 | LoginResponse422]:
+) -> Response[AuthTokens | LoginResponse401]:
     """User login
 
     Args:
@@ -134,7 +128,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[AuthTokens | LoginResponse401 | LoginResponse422]
+        Response[AuthTokens | LoginResponse401]
     """
 
     kwargs = _get_kwargs(
@@ -150,7 +144,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: LoginRequest,
-) -> AuthTokens | LoginResponse401 | LoginResponse422 | None:
+) -> AuthTokens | LoginResponse401 | None:
     """User login
 
     Args:
@@ -161,7 +155,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        AuthTokens | LoginResponse401 | LoginResponse422
+        AuthTokens | LoginResponse401
     """
 
     return (

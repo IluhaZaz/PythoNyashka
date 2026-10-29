@@ -5,6 +5,8 @@ from uuid import UUID
 from fastapi import UploadFile
 from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
 
+from src.bff.domain.tags import ProfileTag
+
 
 class LoginRequest(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -51,7 +53,7 @@ class ProfileCreate(BaseModel):
     age: int = Field(strict=False, gt=0, lt=150)
     bio: str = Field(max_length=1000)
     gender: Literal["male", "female"]
-    tags: list[str]
+    tags: list[ProfileTag]
     avatar: UploadFile | None = None
 
 
@@ -94,5 +96,5 @@ class ProfileUpdate(BaseModel):
     age: int | None = Field(default=None, strict=False, gt=0, lt=150)
     bio: str | None = Field(default=None, max_length=1000)
     gender: Literal["male", "female"] | None = None
-    tags: list[str] | None = None
+    tags: list[ProfileTag] | None = None
     avatar: UploadFile | None = None

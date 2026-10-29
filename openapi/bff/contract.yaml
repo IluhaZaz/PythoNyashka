@@ -98,6 +98,10 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProfileCreate'
+            encoding:
+              tags:
+                style: form
+                explode: true
       responses:
         '409':
           $ref: '#/components/responses/BadRequestAuthResponse'
@@ -115,6 +119,10 @@ paths:
             multipart/form-data:
               schema:
                 $ref: '#/components/schemas/ProfileUpdate'
+              encoding:
+                tags:
+                  style: form
+                  explode: true
         responses:
           '401':
             $ref: '#/components/responses/UnauthorizedResponse'
@@ -424,6 +432,62 @@ components:
           items:
             type: string
 
+    ProfileTag:
+      type: string
+      enum:
+        - backend
+        - frontend
+        - fullstack
+        - mobile
+        - gamedev
+        - devops
+        - qa
+        - data-science
+        - data-engineering
+        - machine-learning
+        - cybersecurity
+        - ui-ux
+        - systems-analysis
+        - python
+        - javascript
+        - typescript
+        - java
+        - csharp
+        - c
+        - cpp
+        - go
+        - rust
+        - kotlin
+        - swift
+        - php
+        - ruby
+        - sql
+        - react
+        - vue
+        - angular
+        - fastapi
+        - django
+        - spring
+        - dotnet
+        - postgresql
+        - mongodb
+        - redis
+        - docker
+        - kubernetes
+        - linux
+        - git
+        - flutter
+        - open-source
+        - hackathons
+        - competitive-programming
+        - algorithms
+        - system-design
+        - pet-projects
+        - startups
+        - mentoring
+        - tech-meetups
+        - ctf
+
     ProfileCreate:
       type: object
       required: [email, password, name, surname, age, bio, gender, tags]
@@ -452,7 +516,7 @@ components:
         tags:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/ProfileTag'
 
     ProfileUpdate:
       type: object
@@ -474,7 +538,7 @@ components:
         tags:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/ProfileTag'
 
     ChatCreate:
       type: object

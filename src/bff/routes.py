@@ -141,6 +141,15 @@ async def change_password(
     "/profiles",
     status_code=201,
     operation_id="createProfile",
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "multipart/form-data": {
+                    "encoding": {"tags": {"style": "form", "explode": True}},
+                },
+            },
+        },
+    },
     response_model=ProfileCreatedResponse,
     responses={409: {"model": ErrorResponse}},
     tags=["Profiles"]
@@ -191,6 +200,15 @@ async def get_profile(
     "/profiles",
     status_code=204,
     operation_id="updateProfile",
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "multipart/form-data": {
+                    "encoding": {"tags": {"style": "form", "explode": True}},
+                },
+            },
+        },
+    },
     response_class=Response,
     responses={
         401: {"model": ErrorResponse},

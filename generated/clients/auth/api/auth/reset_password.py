@@ -7,7 +7,7 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.password_reset_request import PasswordResetRequest
 from ...models.reset_password_response_400 import ResetPasswordResponse400
-from ...models.reset_password_response_422 import ResetPasswordResponse422
+from ...models.reset_password_response_401 import ResetPasswordResponse401
 from ...types import Response
 
 
@@ -32,7 +32,7 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | ResetPasswordResponse400 | ResetPasswordResponse422 | None:
+) -> Any | ResetPasswordResponse400 | ResetPasswordResponse401 | None:
     if response.status_code == 204:
         response_204 = cast(Any, None)
         return response_204
@@ -42,10 +42,10 @@ def _parse_response(
 
         return response_400
 
-    if response.status_code == 422:
-        response_422 = ResetPasswordResponse422.from_dict(response.json())
+    if response.status_code == 401:
+        response_401 = ResetPasswordResponse401.from_dict(response.json())
 
-        return response_422
+        return response_401
 
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
@@ -55,7 +55,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | ResetPasswordResponse400 | ResetPasswordResponse422]:
+) -> Response[Any | ResetPasswordResponse400 | ResetPasswordResponse401]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -66,10 +66,10 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: AuthenticatedClient,
     body: PasswordResetRequest,
-) -> Response[Any | ResetPasswordResponse400 | ResetPasswordResponse422]:
-    """Request or confirm password reset
+) -> Response[Any | ResetPasswordResponse400 | ResetPasswordResponse401]:
+    """Change password using the current password
 
     Args:
         body (PasswordResetRequest):
@@ -79,7 +79,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Any | ResetPasswordResponse400 | ResetPasswordResponse422]
+        Response[Any | ResetPasswordResponse400 | ResetPasswordResponse401]
     """
 
     kwargs = _get_kwargs(
@@ -95,10 +95,10 @@ def sync_detailed(
 
 def sync(
     *,
-    client: AuthenticatedClient | Client,
+    client: AuthenticatedClient,
     body: PasswordResetRequest,
-) -> Any | ResetPasswordResponse400 | ResetPasswordResponse422 | None:
-    """Request or confirm password reset
+) -> Any | ResetPasswordResponse400 | ResetPasswordResponse401 | None:
+    """Change password using the current password
 
     Args:
         body (PasswordResetRequest):
@@ -108,7 +108,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Any | ResetPasswordResponse400 | ResetPasswordResponse422
+        Any | ResetPasswordResponse400 | ResetPasswordResponse401
     """
 
     return sync_detailed(
@@ -119,10 +119,10 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: AuthenticatedClient | Client,
+    client: AuthenticatedClient,
     body: PasswordResetRequest,
-) -> Response[Any | ResetPasswordResponse400 | ResetPasswordResponse422]:
-    """Request or confirm password reset
+) -> Response[Any | ResetPasswordResponse400 | ResetPasswordResponse401]:
+    """Change password using the current password
 
     Args:
         body (PasswordResetRequest):
@@ -132,7 +132,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Any | ResetPasswordResponse400 | ResetPasswordResponse422]
+        Response[Any | ResetPasswordResponse400 | ResetPasswordResponse401]
     """
 
     kwargs = _get_kwargs(
@@ -146,10 +146,10 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: AuthenticatedClient | Client,
+    client: AuthenticatedClient,
     body: PasswordResetRequest,
-) -> Any | ResetPasswordResponse400 | ResetPasswordResponse422 | None:
-    """Request or confirm password reset
+) -> Any | ResetPasswordResponse400 | ResetPasswordResponse401 | None:
+    """Change password using the current password
 
     Args:
         body (PasswordResetRequest):
@@ -159,7 +159,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Any | ResetPasswordResponse400 | ResetPasswordResponse422
+        Any | ResetPasswordResponse400 | ResetPasswordResponse401
     """
 
     return (

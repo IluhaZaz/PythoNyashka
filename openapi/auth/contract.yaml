@@ -84,10 +84,12 @@ paths:
 
   /auth/password/reset:
     post:
-      summary: Request or confirm password reset
+      summary: Change password using the current password
       operationId: resetPassword
       tags:
         - Auth
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -99,8 +101,8 @@ paths:
           description: OK
         '400':
           $ref: '#/components/responses/BadRequestResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableAuthResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
 
 components:
   securitySchemes:
@@ -149,16 +151,18 @@ components:
 
     PasswordResetRequest:
       type: object
-      required: [email, code, new_password]
+      required: [old_password, new_password]
       properties:
         old_password:
           type: string
           format: password
+          writeOnly: true
           description: Old password
           example: "NewSecret123!"
         new_password:
           type: string
           format: password
+          writeOnly: true
           description: New password
 
     AuthTokens:

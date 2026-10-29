@@ -4,14 +4,22 @@ from uuid import UUID
 
 from fastapi import UploadFile
 
-from generated.clients.auth.api.auth import login, register
-from generated.clients.auth.client import Client
+from generated.clients.auth.api.auth import login, logout, refresh_token, register, reset_password
+from generated.clients.auth.client import AuthenticatedClient, Client
 from generated.clients.auth.models.auth_tokens import AuthTokens as ClientAuthTokens
 from generated.clients.auth.models.login_request import LoginRequest as ClientLoginRequest
 from generated.clients.auth.models.login_response_401 import LoginResponse401
+from generated.clients.auth.models.logout_response_401 import LogoutResponse401
+from generated.clients.auth.models.password_reset_request import PasswordResetRequest
+from generated.clients.auth.models.refresh_token_request import (
+    RefreshTokenRequest as ClientRefreshTokenRequest,
+)
+from generated.clients.auth.models.refresh_token_response_401 import RefreshTokenResponse401
 from generated.clients.auth.models.register_request import RegisterRequest
 from generated.clients.auth.models.register_response_201 import RegisterResponse201
 from generated.clients.auth.models.register_response_400 import RegisterResponse400
+from generated.clients.auth.models.reset_password_response_400 import ResetPasswordResponse400
+from generated.clients.auth.models.reset_password_response_401 import ResetPasswordResponse401
 from generated.clients.media.api.media import upload_media
 from generated.clients.media.client import Client as MediaClient
 from generated.clients.media.models.media_create import MediaCreate
@@ -25,10 +33,12 @@ from generated.clients.profile.models.profile_create import ProfileCreate as Cli
 from generated.clients.profile.models.profile_create_gender import ProfileCreateGender
 from src.bff.domain.schemas import (
     AuthTokens,
+    ChangePasswordRequest,
     ErrorResponse,
     LoginRequest,
     ProfileCreate,
     ProfileCreatedResponse,
+    RefreshTokenRequest,
 )
 
 
@@ -55,6 +65,88 @@ class Login:
 
         if response.status_code == HTTPStatus.UNAUTHORIZED and isinstance(
             response.parsed, LoginResponse401,
+        ):
+            error = ErrorResponse.model_validate(response.parsed.to_dict())
+            raise InvalidCredentialsError(error.error)
+
+        raise RuntimeError(f"Unexpected Auth Service response: {response.status_code}")
+
+
+class Refresh:
+    def __init__(self, client: Client) -> None:
+        self.client = client
+
+    async def execute(self, req: RefreshTokenRequest) -> AuthTokens:
+        response = await refresh_token.asyncio_detailed(
+            client=self.client,
+            body=ClientRefreshTokenRequest(refresh_token=req.refresh_token),
+        )
+        if response.status_code == HTTPStatus.OK and isinstance(
+            response.parsed, ClientAuthTokens,
+        ):
+            return AuthTokens.model_validate(response.parsed.to_dict())
+        if response.status_code == HTTPStatus.UNAUTHORIZED and isinstance(
+            response.parsed, RefreshTokenResponse401,
+        ):
+            error = ErrorResponse.model_validate(response.parsed.to_dict())
+            raise InvalidCredentialsError(error.error)
+
+        raise RuntimeError(f"Unexpected Auth Service response: {response.status_code}")
+
+
+class Logout:
+    def __init__(self, client: AuthenticatedClient | None) -> None:
+        self.client = client
+
+    async def execute(self, req: RefreshTokenRequest) -> None:
+        if self.client is None:
+            raise InvalidCredentialsError("Невалидный токен или сессия")
+
+        response = await logout.asyncio_detailed(
+            client=self.client,
+            body=ClientRefreshTokenRequest(refresh_token=req.refresh_token),
+        )
+        if response.status_code == HTTPStatus.NO_CONTENT:
+            return
+        if response.status_code == HTTPStatus.UNAUTHORIZED and isinstance(
+            response.parsed, LogoutResponse401,
+        ):
+            error = ErrorResponse.model_validate(response.parsed.to_dict())
+            raise InvalidCredentialsError(error.error)
+
+        raise RuntimeError(f"Unexpected Auth Service response: {response.status_code}")
+
+
+class InvalidOldPasswordError(Exception):
+    def __init__(self, error: str) -> None:
+        self.error = error
+        super().__init__(error)
+
+
+class ChangePassword:
+    def __init__(self, client: AuthenticatedClient | None) -> None:
+        self.client = client
+
+    async def execute(self, req: ChangePasswordRequest) -> None:
+        if self.client is None:
+            raise InvalidCredentialsError("Невалидный access-токен")
+
+        response = await reset_password.asyncio_detailed(
+            client=self.client,
+            body=PasswordResetRequest(
+                old_password=req.old_password,
+                new_password=req.new_password,
+            ),
+        )
+        if response.status_code == HTTPStatus.NO_CONTENT:
+            return
+        if response.status_code == HTTPStatus.BAD_REQUEST and isinstance(
+            response.parsed, ResetPasswordResponse400,
+        ):
+            error = ErrorResponse.model_validate(response.parsed.to_dict())
+            raise InvalidOldPasswordError(error.error)
+        if response.status_code == HTTPStatus.UNAUTHORIZED and isinstance(
+            response.parsed, ResetPasswordResponse401,
         ):
             error = ErrorResponse.model_validate(response.parsed.to_dict())
             raise InvalidCredentialsError(error.error)

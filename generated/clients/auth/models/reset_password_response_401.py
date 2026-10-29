@@ -6,32 +6,27 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-T = TypeVar("T", bound="ResetPasswordResponse422ErrorsItem")
+T = TypeVar("T", bound="ResetPasswordResponse401")
 
 
 @_attrs_define
-class ResetPasswordResponse422ErrorsItem:
+class ResetPasswordResponse401:
     """
     Attributes:
-        field (str):  Example: email.
-        reason (str):  Example: Must be a valid email address.
+        error (str):  Example: Invalid credentials.
     """
 
-    field: str
-    reason: str
+    error: str
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        field = self.field
-
-        reason = self.reason
+        error = self.error
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "field": field,
-                "reason": reason,
+                "error": error,
             }
         )
 
@@ -40,17 +35,14 @@ class ResetPasswordResponse422ErrorsItem:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        field = d.pop("field")
+        error = d.pop("error")
 
-        reason = d.pop("reason")
-
-        reset_password_response_422_errors_item = cls(
-            field=field,
-            reason=reason,
+        reset_password_response_401 = cls(
+            error=error,
         )
 
-        reset_password_response_422_errors_item.additional_properties = d
-        return reset_password_response_422_errors_item
+        reset_password_response_401.additional_properties = d
+        return reset_password_response_401
 
     @property
     def additional_keys(self) -> list[str]:

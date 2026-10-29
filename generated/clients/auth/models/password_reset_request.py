@@ -6,8 +6,6 @@ from typing import Any, TypeVar
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..types import UNSET, Unset
-
 T = TypeVar("T", bound="PasswordResetRequest")
 
 
@@ -15,41 +13,40 @@ T = TypeVar("T", bound="PasswordResetRequest")
 class PasswordResetRequest:
     """
     Attributes:
+        old_password (str): Old password Example: NewSecret123!.
         new_password (str): New password
-        old_password (str | Unset): Old password Example: NewSecret123!.
     """
 
+    old_password: str
     new_password: str
-    old_password: str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        new_password = self.new_password
-
         old_password = self.old_password
+
+        new_password = self.new_password
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
+                "old_password": old_password,
                 "new_password": new_password,
             }
         )
-        if old_password is not UNSET:
-            field_dict["old_password"] = old_password
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        old_password = d.pop("old_password")
+
         new_password = d.pop("new_password")
 
-        old_password = d.pop("old_password", UNSET)
-
         password_reset_request = cls(
-            new_password=new_password,
             old_password=old_password,
+            new_password=new_password,
         )
 
         password_reset_request.additional_properties = d

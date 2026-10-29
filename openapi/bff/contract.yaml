@@ -45,8 +45,6 @@ paths:
           $ref: '#/components/responses/AuthTokenResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableAuthResponse'
   /auth/logout:
     post:
       summary: Log out of the current session
@@ -64,8 +62,6 @@ paths:
           description: Session revoked. No response body.
         '401':
           $ref: '#/components/responses/UnauthorizedResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableAuthResponse'
   /auth/password/change:
     post:
       summary: Change password using the current password
@@ -85,8 +81,6 @@ paths:
           $ref: '#/components/responses/BadRequestAuthResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableAuthResponse'
   /profiles:
     post:
       security: []

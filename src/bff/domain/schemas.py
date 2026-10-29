@@ -21,6 +21,19 @@ class AuthTokens(BaseModel):
     expires_in: int | None = None
 
 
+class ChangePasswordRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    old_password: str = Field(repr=False, json_schema_extra={"writeOnly": True})
+    new_password: str = Field(repr=False, json_schema_extra={"writeOnly": True})
+
+
+class RefreshTokenRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    refresh_token: str = Field(repr=False, json_schema_extra={"writeOnly": True})
+
+
 class ErrorResponse(BaseModel):
     model_config = ConfigDict(strict=True)
 

@@ -13,8 +13,7 @@ from .register_response_400 import RegisterResponse400
 from .register_response_422 import RegisterResponse422
 from .register_response_422_errors_item import RegisterResponse422ErrorsItem
 from .reset_password_response_400 import ResetPasswordResponse400
-from .reset_password_response_422 import ResetPasswordResponse422
-from .reset_password_response_422_errors_item import ResetPasswordResponse422ErrorsItem
+from .reset_password_response_401 import ResetPasswordResponse401
 
 __all__ = (
     "AuthTokens",
@@ -30,6 +29,5 @@ __all__ = (
     "RegisterResponse422",
     "RegisterResponse422ErrorsItem",
     "ResetPasswordResponse400",
-    "ResetPasswordResponse422",
-    "ResetPasswordResponse422ErrorsItem",
+    "ResetPasswordResponse401",
 )

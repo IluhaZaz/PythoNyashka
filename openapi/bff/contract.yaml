@@ -5,9 +5,89 @@ info:
     Microservice representing the layer between backend microservices and frontend.
   version: 1.0.0
 
+security: [{BearerAuth: []}]
+
 paths:
+  /auth/login:
+    post:
+      summary: User login
+      operationId: login
+      tags: [Auth]
+      description: BFF forwards credentials to Auth Service and returns access and refresh tokens.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access and refresh tokens
+      operationId: refreshToken
+      tags: [Auth]
+      description: BFF forwards the refresh token to Auth Service. Returns a new token pair; the previous refresh token becomes invalid. No access token is required.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+  /auth/logout:
+    post:
+      summary: Log out of the current session
+      operationId: logout
+      tags: [Auth]
+      description: BFF forwards the access and refresh tokens to Auth Service to revoke the matching user session. An already-revoked matching session also returns 204.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '204':
+          description: Session revoked. No response body.
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+  /auth/password/change:
+    post:
+      summary: Change password using the current password
+      operationId: changePassword
+      tags: [Auth]
+      description: Auth verifies the current password, changes the password hash and revokes all refresh sessions. The client must sign in again.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: Password changed and refresh sessions revoked. No response body.
+        '400':
+          $ref: '#/components/responses/BadRequestAuthResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
   /profiles:
     post:
+      security: []
+      description: |
+        BFF creates a profile, then registers an account in Auth Service using the returned profile_id.
+        Password is forwarded only to Auth Service. Returns 201 after both steps succeed; id is the profile ID.
+        If registration fails, BFF deletes the created profile.
       summary: Create a new profile
       operationId: createProfile
       tags:
@@ -17,14 +97,15 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ProfileCreate' 
+              $ref: '#/components/schemas/ProfileCreate'
       responses:
+        '409':
+          $ref: '#/components/responses/BadRequestAuthResponse'
         '201':
           $ref: '#/components/responses/ProfileCreatedResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableProfileResponse'
     patch:
         summary: Update profile data
+        description: Update the profile identified by the validated access JWT. Only submitted fields are changed. Avatar is uploaded to Media Service and its ID is passed to Profile Service.
         operationId: updateProfile
         tags:
           - Profiles
@@ -35,27 +116,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProfileUpdate'
         responses:
+          '401':
+            $ref: '#/components/responses/UnauthorizedResponse'
           '204':
             description: OK
           '404':
             $ref: '#/components/responses/ProfileNotFoundResponse'
-          '422':
-            $ref: '#/components/responses/UnprocessableProfileResponse'
 
-  /profiles/{profile_id}:
     get:
-      summary: Get profile by ID
-      operationId: getProfileById
+      summary: Get the current user profile
+      description: BFF reads profile_id from the validated access JWT and retrieves that profile from Profile Service.
+      operationId: getProfile
       tags:
         - Profiles
-      parameters:
-        - name: profile_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '200':
           $ref: '#/components/responses/ProfileGetResponse'
         '404':
@@ -64,26 +140,30 @@ paths:
     post:
       summary: Create a new chat
       operationId: createChat
-      tags: 
+      tags:
         - Chats
       requestBody:
         required: true
         content:
           application/json:
-            schema: 
+            schema:
               $ref: '#/components/schemas/ChatCreate'
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '200':
           $ref: '#/components/responses/ChatCreatedResponse'
         '404':
           $ref: '#/components/responses/EntityNotFoundResponse'
-    
+
     get:
       summary: Get profile chats
       operationId: getChats
-      tags: 
+      tags:
         - Chats
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '200':
           $ref: '#/components/responses/ChatsResponse'
         '404':
@@ -93,7 +173,7 @@ paths:
     post:
       summary: Send message
       operationId: sendMessage
-      tags: 
+      tags:
         - Chats
       parameters:
         - name: chat_id
@@ -106,19 +186,21 @@ paths:
         required: true
         content:
           multipart/form-data:
-            schema: 
+            schema:
                 $ref: '#/components/schemas/MessageCreate'
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '204':
           description: OK
         '404':
           $ref: '#/components/responses/EntityNotFoundResponse'
-  
+
   /chats/{chat_id}/messages:
     get:
       summary: Get chat messages
       operationId: getChatMessages
-      tags: 
+      tags:
         - Chats
       parameters:
         - name: chat_id
@@ -136,6 +218,8 @@ paths:
           schema:
             type: integer
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '200':
           $ref: '#/components/responses/ChatMessagesResponse'
         '404':
@@ -145,7 +229,7 @@ paths:
       summary: Get media content
       description: |
         Returns file bytes through BFF without redirecting to Media Service.
-        BFF checks access to the associated profile or chat before returning content.
+        Any valid access JWT permits retrieving a file by media_id. No profile or chat ownership check is performed.
       operationId: getMediaById
       tags:
         - Media
@@ -157,6 +241,8 @@ paths:
             type: string
             format: uuid
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '200':
           description: File content. Content-Type contains the actual media type of the file.
           headers:
@@ -169,8 +255,6 @@ paths:
               schema:
                 type: string
                 format: binary
-        '403':
-          description: Access to this media is forbidden
         '404':
           description: Media not found
 
@@ -181,6 +265,8 @@ paths:
       tags:
       - Matches
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '200':
           $ref: '#/components/responses/MatchGetResponse'
 
@@ -200,9 +286,11 @@ paths:
           schema:
             type: integer
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '200':
           $ref: '#/components/responses/MatchesGetResponse'
-  
+
   /matches/{match_id}/swipe:
     post:
       summary: Answer match
@@ -217,16 +305,94 @@ paths:
       tags:
       - Matches
       responses:
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '204':
           description: OK
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'Send the access JWT in Authorization: Bearer <access_token>.'
   schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          writeOnly: true
+    RefreshTokenRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          writeOnly: true
+          description: The latest refresh token returned by login or refresh.
+    ChangePasswordRequest:
+      type: object
+      required: [old_password, new_password]
+      properties:
+        old_password:
+          type: string
+          format: password
+          writeOnly: true
+        new_password:
+          type: string
+          format: password
+          writeOnly: true
+    AuthTokens:
+      type: object
+      required: [access_token, refresh_token, token_type]
+      properties:
+        access_token:
+          type: string
+          description: Complete signed access JWT used in the Authorization header.
+        refresh_token:
+          type: string
+          description: Opaque refresh token. Use the latest value for refresh and logout.
+        token_type:
+          type: string
+          enum: [Bearer]
+          example: Bearer
+        expires_in:
+          type: integer
+          nullable: true
+          description: Access token lifetime in seconds.
+          example: 900
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    ValidationErrors:
+      type: object
+      required: [errors]
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, reason]
+            properties:
+              field:
+                type: string
+              reason:
+                type: string
     ProfileGet:
       type: object
       required: [id, name, surname, age, bio, gender, tags, created_at, updated_at]
       properties:
-        id: 
+        id:
           type: string
           format: uuid
         email:
@@ -238,7 +404,7 @@ components:
           description: mediaId of avatar
         name:
           type: string
-        surname: 
+        surname:
           type: string
         age:
           type: integer
@@ -253,24 +419,28 @@ components:
         updated_at:
           type: string
           format: date-time
-        tags: 
+        tags:
           type: array
-          items: 
+          items:
             type: string
-    
+
     ProfileCreate:
       type: object
-      required: [email, name, surname, age, bio, gender, tags]
+      required: [email, password, name, surname, age, bio, gender, tags]
       properties:
         email:
           type: string
           format: email
+        password:
+          type: string
+          format: password
+          writeOnly: true
         avatar:
           type: string
           format: binary
         name:
           type: string
-        surname: 
+        surname:
           type: string
         age:
           type: integer
@@ -279,9 +449,9 @@ components:
         gender:
           type: string
           enum: [male, female]
-        tags: 
+        tags:
           type: array
-          items: 
+          items:
             type: string
 
     ProfileUpdate:
@@ -292,7 +462,7 @@ components:
           format: binary
         name:
           type: string
-        surname: 
+        surname:
           type: string
         age:
           type: integer
@@ -301,21 +471,21 @@ components:
         gender:
           type: string
           enum: [male, female]
-        tags: 
+        tags:
           type: array
-          items: 
+          items:
             type: string
 
     ChatCreate:
       type: object
       required: [contactIds]
       properties:
-        contactIds: 
+        contactIds:
           type: array
           items:
             type: string
             format: uuid
-    
+
     MessageCreate:
       type: object
       description: |
@@ -328,18 +498,18 @@ components:
           type: string
         media:
           type: array
-          items: 
+          items:
             type: string
             format: binary
-    
+
     MessageGet:
       type: object
       required: [id, senderId, text, media]
       properties:
-        id: 
+        id:
           type: string
           format: uuid
-        senderId: 
+        senderId:
           type: string
           format: uuid
         text:
@@ -355,7 +525,7 @@ components:
         sentAt:
           type: string
           format: date-time
-    
+
     MatchGet:
       type: object
       properties:
@@ -398,7 +568,7 @@ components:
               id:
                 type: string
                 format: uuid
-    
+
     ProfileNotFoundResponse:
       description: profile with such id not found
       content:
@@ -410,7 +580,7 @@ components:
               error:
                 type: string
                 example: "Profile not found"
-    
+
     UnprocessableProfileResponse:
       description: profile validation error
       content:
@@ -440,7 +610,7 @@ components:
               id:
                 type: string
                 format: uuid
-    
+
     ChatMessagesResponse:
       description: got chat messages
       content:
@@ -456,7 +626,7 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/MessageGet'
-    
+
     ChatsResponse:
       description: got all chat ids
       content:
@@ -464,12 +634,12 @@ components:
           schema:
             type: object
             properties:
-              chatIds: 
+              chatIds:
                 type: array
-                items: 
+                items:
                   type: string
                   format: uuid
-    
+
     EntityNotFoundResponse:
       description: entity with such id not found
       content:
@@ -481,7 +651,7 @@ components:
               error:
                 type: string
                 example: "Chat not found"
-    
+
     MatchGetResponse:
         description: got match
         content:
@@ -500,3 +670,28 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/MatchGet'
+
+    AuthTokenResponse:
+      description: Access and refresh tokens issued successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AuthTokens'
+    UnauthorizedResponse:
+      description: Missing or invalid access token, invalid credentials, or invalid refresh session.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequestAuthResponse:
+      description: Logical error, such as a duplicate email or an incorrect current password.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableAuthResponse:
+      description: Request validation error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrors'

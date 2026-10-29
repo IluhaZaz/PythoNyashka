@@ -1,11 +1,12 @@
 from collections.abc import AsyncIterator
+from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.infrastructure.storage.postgresql.core import DBSession
 from src.profile import usecase
 from src.profile.infrastructure.storage.postgresql.repository import ProfileRepository
-from src.infrastructure.storage.postgresql.core import DBSession
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
@@ -39,3 +40,9 @@ def get_profile_uc(
     repo: ProfileRepository = Depends(get_repository),
 ) -> usecase.GetProfile:
     return usecase.GetProfile(repository=repo)
+
+
+def delete_profile_uc(
+    repo: Annotated[ProfileRepository, Depends(get_repository)],
+) -> usecase.DeleteProfile:
+    return usecase.DeleteProfile(repository=repo)

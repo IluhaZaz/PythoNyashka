@@ -23,8 +23,6 @@ paths:
           $ref: '#/components/responses/AuthTokenResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableAuthResponse'
 
   /auth/logout:
     post:
@@ -86,10 +84,12 @@ paths:
 
   /auth/password/reset:
     post:
-      summary: Request or confirm password reset
+      summary: Change password using the current password
       operationId: resetPassword
       tags:
         - Auth
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -101,8 +101,8 @@ paths:
           description: OK
         '400':
           $ref: '#/components/responses/BadRequestResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableAuthResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
 
 components:
   securitySchemes:
@@ -127,7 +127,7 @@ components:
 
     RegisterRequest:
       type: object
-      required: [email, password, profileId]
+      required: [email, password, profile_id]
       properties:
         email:
           type: string
@@ -137,7 +137,7 @@ components:
           type: string
           format: password
           example: "Secret123!"
-        profileId:
+        profile_id:
           type: string
           format: uuid
 
@@ -151,16 +151,18 @@ components:
 
     PasswordResetRequest:
       type: object
-      required: [email, code, new_password]
+      required: [old_password, new_password]
       properties:
         old_password:
           type: string
           format: password
+          writeOnly: true
           description: Old password
           example: "NewSecret123!"
         new_password:
           type: string
           format: password
+          writeOnly: true
           description: New password
 
     AuthTokens:
@@ -259,3 +261,6 @@ components:
                     reason:
                       type: string
                       example: "Must be a valid email address"
+
+
+#poetry run openapi-python-client generate --path openapi/auth/contract.yaml --meta none --overwrite --output-path generated/clients/auth

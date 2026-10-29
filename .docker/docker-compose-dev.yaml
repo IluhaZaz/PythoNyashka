@@ -81,6 +81,33 @@ services:
       - public
       - backend
 
+  bff:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileBff
+    restart: unless-stopped
+    command: uvicorn src.bff.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8003:8000"
+    env_file:
+      - .env
+    environment:
+      BFF_AUTH_BASE_URL: http://auth:8000
+      BFF_PROFILE_BASE_URL: http://profile:8000
+      BFF_MEDIA_BASE_URL: http://media:8000
+    volumes:
+      - ../src/bff:/app/src/bff
+      - ../generated/clients/auth:/app/generated/clients/auth
+      - ../generated/clients/profile:/app/generated/clients/profile
+      - ../generated/clients/media:/app/generated/clients/media
+    networks:
+      - public
+      - backend
+    depends_on:
+      - auth
+      - profile
+      - media
+
 volumes:
   postgres_data:
   minio_data:

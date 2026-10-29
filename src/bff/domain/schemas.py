@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
 from fastapi import UploadFile
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
@@ -58,3 +59,40 @@ class ProfileCreatedResponse(BaseModel):
     model_config = ConfigDict(strict=True)
 
     id: UUID
+
+
+class ProfileGet(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    id: UUID
+    name: str
+    surname: str
+    age: int
+    bio: str
+    gender: Literal["male", "female"]
+    tags: list[str]
+    created_at: datetime
+    updated_at: datetime
+    email: EmailStr | None = None
+    avatar: UUID | None = Field(
+        default=None,
+        validation_alias=AliasChoices("avatar", "avatar_id"),
+    )
+
+
+class ProfileGetResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    profile: ProfileGet
+
+
+class ProfileUpdate(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    surname: str | None = Field(default=None, min_length=1, max_length=100)
+    age: int | None = Field(default=None, strict=False, gt=0, lt=150)
+    bio: str | None = Field(default=None, max_length=1000)
+    gender: Literal["male", "female"] | None = None
+    tags: list[str] | None = None
+    avatar: UploadFile | None = None

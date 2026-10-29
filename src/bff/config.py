@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,6 +7,12 @@ class AuthClientConfig(BaseSettings):
     timeout_seconds: float = Field(default=10.0, gt=0)
 
     model_config = SettingsConfigDict(env_prefix="bff_auth_")
+
+
+class TokenConfig(BaseSettings):
+    jwt_secret: SecretStr = Field(min_length=32, init=False)
+
+    model_config = SettingsConfigDict(env_prefix="auth_")
 
 
 class ProfileClientConfig(BaseSettings):

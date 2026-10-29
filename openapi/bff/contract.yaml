@@ -105,6 +105,7 @@ paths:
           $ref: '#/components/responses/ProfileCreatedResponse'
     patch:
         summary: Update profile data
+        description: Update the profile identified by the validated access JWT. Only submitted fields are changed. Avatar is uploaded to Media Service and its ID is passed to Profile Service.
         operationId: updateProfile
         tags:
           - Profiles
@@ -121,22 +122,13 @@ paths:
             description: OK
           '404':
             $ref: '#/components/responses/ProfileNotFoundResponse'
-          '422':
-            $ref: '#/components/responses/UnprocessableProfileResponse'
 
-  /profiles/{profile_id}:
     get:
-      summary: Get profile by ID
-      operationId: getProfileById
+      summary: Get the current user profile
+      description: BFF reads profile_id from the validated access JWT and retrieves that profile from Profile Service.
+      operationId: getProfile
       tags:
         - Profiles
-      parameters:
-        - name: profile_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
       responses:
         '401':
           $ref: '#/components/responses/UnauthorizedResponse'
@@ -237,7 +229,7 @@ paths:
       summary: Get media content
       description: |
         Returns file bytes through BFF without redirecting to Media Service.
-        BFF checks access to the associated profile or chat before returning content.
+        Any valid access JWT permits retrieving a file by media_id. No profile or chat ownership check is performed.
       operationId: getMediaById
       tags:
         - Media
@@ -263,8 +255,6 @@ paths:
               schema:
                 type: string
                 format: binary
-        '403':
-          description: Access to this media is forbidden
         '404':
           description: Media not found
 

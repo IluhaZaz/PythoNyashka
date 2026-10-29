@@ -1,15 +1,27 @@
 from collections.abc import AsyncIterator
 from typing import Annotated
+from uuid import UUID
 
 import httpx
+import jwt
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from generated.clients.auth.client import AuthenticatedClient, Client
 from generated.clients.media.client import Client as MediaClient
 from generated.clients.profile.client import Client as ProfileClient
-from src.bff.config import AuthClientConfig, MediaClientConfig, ProfileClientConfig
-from src.bff.usecase import ChangePassword, CreateProfile, Login, Logout, Refresh
+from src.bff.config import AuthClientConfig, MediaClientConfig, ProfileClientConfig, TokenConfig
+from src.bff.security import AccessTokenVerifier
+from src.bff.usecase import (
+    ChangePassword,
+    CreateProfile,
+    GetMedia,
+    GetProfile,
+    Login,
+    Logout,
+    Refresh,
+    UpdateProfile,
+)
 
 bearer = HTTPBearer(auto_error=False, bearerFormat="JWT", scheme_name="BearerAuth")
 
@@ -106,3 +118,40 @@ def create_profile_uc(
         profile_client=profile_client,
         media_client=media_client,
     )
+
+
+def get_current_profile_id(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+) -> UUID | None:
+    if credentials is None:
+        return None
+    try:
+        return AccessTokenVerifier(TokenConfig()).get_profile_id(credentials.credentials)
+    except jwt.InvalidTokenError:
+        return None
+
+
+def update_profile_uc(
+    profile_id: Annotated[UUID | None, Depends(get_current_profile_id)],
+    profile_client: Annotated[ProfileClient, Depends(get_profile_client)],
+    media_client: Annotated[MediaClient, Depends(get_media_client)],
+) -> UpdateProfile:
+    return UpdateProfile(
+        profile_id=profile_id,
+        profile_client=profile_client,
+        media_client=media_client,
+    )
+
+
+def get_profile_uc(
+    profile_id: Annotated[UUID | None, Depends(get_current_profile_id)],
+    profile_client: Annotated[ProfileClient, Depends(get_profile_client)],
+) -> GetProfile:
+    return GetProfile(profile_id=profile_id, profile_client=profile_client)
+
+
+def get_media_uc(
+    profile_id: Annotated[UUID | None, Depends(get_current_profile_id)],
+    client: Annotated[MediaClient, Depends(get_media_client)],
+) -> GetMedia:
+    return GetMedia(client=client, authenticated=profile_id is not None)

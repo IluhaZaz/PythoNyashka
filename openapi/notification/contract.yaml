@@ -5,13 +5,13 @@ info:
     Internal service for creating, listing, and marking notifications as read.
   version: 1.0.0
 paths:
-  /notifications:
+  /notifications/{profile_id}:
     get:
       summary: Get profile notifications
       operationId: getNotifications
       tags: [Notifications]
       parameters:
-        - $ref: '#/components/parameters/ProfileId'
+        - $ref: '#/components/parameters/ProfileIdPath'
         - name: limit
           in: query
           description: Maximum number of notifications to return.
@@ -37,6 +37,7 @@ paths:
                       $ref: '#/components/schemas/NotificationGet'
         '422':
           $ref: '#/components/responses/ValidationError'
+  /notifications:
     post:
       summary: Create a notification
       operationId: createNotification
@@ -91,6 +92,14 @@ paths:
           $ref: '#/components/responses/ValidationError'
 components:
   parameters:
+    ProfileIdPath:
+      name: profile_id
+      in: path
+      required: true
+      description: Current profile ID supplied by the BFF from the validated JWT.
+      schema:
+        type: string
+        format: uuid
     ProfileId:
       name: profile_id
       in: query

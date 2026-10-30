@@ -127,6 +127,20 @@ components:
         created_at:
           type: string
           format: date-time
+    ValidationErrors:
+      type: object
+      required: [errors]
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, reason]
+            properties:
+              field:
+                type: string
+              reason:
+                type: string
     Error:
       type: object
       required: [error]
@@ -139,4 +153,4 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ValidationErrors'

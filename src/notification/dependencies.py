@@ -24,12 +24,6 @@ def get_repository(
     return NotificationRepository(session)
 
 
-def create_notification_uc(
-    repo: Annotated[NotificationRepository, Depends(get_repository)],
-) -> usecase.CreateNotification:
-    return usecase.CreateNotification(repository=repo)
-
-
 def get_notifications_uc(
     repo: Annotated[NotificationRepository, Depends(get_repository)],
 ) -> usecase.GetNotifications:

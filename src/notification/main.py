@@ -1,14 +1,43 @@
+import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager, suppress
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from src.infrastructure.messaging.kafka.config import KafkaConfig
+from src.infrastructure.storage.postgresql.core import DBSession
 from src.notification.domain.schemas import ValidationErrorItem, ValidationErrors
+from src.notification.infrastructure.messaging.kafka.consumer import NotificationConsumer
 from src.notification.routes import router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    consumer = NotificationConsumer(KafkaConfig(), DBSession)
+    app.state.notification_consumer = consumer
+    try:
+        await consumer.start()
+        task = asyncio.create_task(consumer.run(), name="notification-consumer")
+        try:
+            yield
+        finally:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+    finally:
+        try:
+            await consumer.stop()
+        finally:
+            await DBSession.kw["bind"].dispose()
+
 
 app = FastAPI(
     title="Notification Service API",
-    description="Internal service for creating, listing, and marking notifications as read.",
+    description="Internal API for listing and reading notifications created from Kafka events.",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 

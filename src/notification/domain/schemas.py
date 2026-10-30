@@ -4,15 +4,6 @@ from uuid import UUID
 from pydantic import BaseModel
 
 
-class NotificationCreate(BaseModel):
-    profile_id: UUID
-    text: str
-
-
-class NotificationCreatedResponse(BaseModel):
-    id: UUID
-
-
 class NotificationGet(BaseModel):
     id: UUID
     profile_id: UUID

@@ -2,7 +2,8 @@ openapi: 3.0.3
 info:
   title: Notification Service API
   description: |
-    Internal service for creating, listing, and marking notifications as read.
+    Internal service for listing and marking notifications as read.
+    Notifications are created from events consumed from Kafka.
   version: 1.0.0
 paths:
   /notifications/{profile_id}:
@@ -17,6 +18,7 @@ paths:
           description: Maximum number of notifications to return.
           schema:
             type: integer
+            default: 10
         - name: offset
           in: query
           description: Number of notifications to skip.
@@ -35,32 +37,6 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/NotificationGet'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-  /notifications:
-    post:
-      summary: Create a notification
-      operationId: createNotification
-      tags: [Notifications]
-      description: The service generates id and created_at and sets is_read to false.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NotificationCreate'
-      responses:
-        '201':
-          description: Notification created
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [id]
-                properties:
-                  id:
-                    type: string
-                    format: uuid
         '422':
           $ref: '#/components/responses/ValidationError'
   /notifications/{notification_id}/read:
@@ -109,16 +85,6 @@ components:
         type: string
         format: uuid
   schemas:
-    NotificationCreate:
-      type: object
-      required: [profile_id, text]
-      properties:
-        profile_id:
-          type: string
-          format: uuid
-          description: Recipient profile ID.
-        text:
-          type: string
     NotificationGet:
       type: object
       required: [id, profile_id, text, is_read, created_at]

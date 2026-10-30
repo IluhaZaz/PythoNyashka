@@ -7,36 +7,16 @@ from fastapi.responses import JSONResponse, Response
 from src.notification import dependencies
 from src.notification.domain.schemas import (
     Error,
-    NotificationCreate,
-    NotificationCreatedResponse,
     NotificationsGetResponse,
     ValidationErrors,
 )
 from src.notification.usecase import (
-    CreateNotification,
     GetNotifications,
     NotificationNotFoundError,
     ReadNotification,
 )
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
-
-
-@router.post(
-    "",
-    status_code=201,
-    operation_id="createNotification",
-    response_model=NotificationCreatedResponse,
-    responses={
-        422: {"model": ValidationErrors, "description": "Invalid request parameters or body"},
-    },
-)
-async def create_notification(
-    req: NotificationCreate,
-    usecase: Annotated[CreateNotification, Depends(dependencies.create_notification_uc)],
-) -> NotificationCreatedResponse:
-    notification_id = await usecase.execute(req)
-    return NotificationCreatedResponse(id=UUID(notification_id))
 
 
 @router.get(
@@ -51,8 +31,8 @@ async def get_notifications(
     profile_id: UUID,
     usecase: Annotated[GetNotifications, Depends(dependencies.get_notifications_uc)],
     limit: Annotated[int | None, Query(
-        description="Maximum number of notifications to return.", default=10
-    )] = None,
+        description="Maximum number of notifications to return.",
+    )] = 10,
     offset: Annotated[int, Query(description="Number of notifications to skip.")] = 0,
 ) -> NotificationsGetResponse:
     notifications = await usecase.execute(str(profile_id), limit=limit, offset=offset)

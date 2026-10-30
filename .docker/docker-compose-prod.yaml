@@ -50,7 +50,7 @@ services:
       - --create
       - --if-not-exists
       - --topic
-      - notification.events
+      - ${KAFKA_NOTIFICATIONS_TOPIC}
       - --partitions
       - "1"
       - --replication-factor
@@ -103,6 +103,21 @@ services:
     volumes:
       - ../src/media:/app/src/media
       - ../src/infrastructure:/app/src/infrastructure
+    networks:
+      - backend
+
+  notification:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileNotification
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
     networks:
       - backend
 

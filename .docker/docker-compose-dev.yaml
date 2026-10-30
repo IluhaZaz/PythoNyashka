@@ -56,7 +56,7 @@ services:
       - --create
       - --if-not-exists
       - --topic
-      - notification.events
+      - ${KAFKA_NOTIFICATIONS_TOPIC}
       - --partitions
       - "1"
       - --replication-factor
@@ -135,6 +135,28 @@ services:
     volumes:
       - ../src/media:/app/src/media
       - ../src/infrastructure:/app/src/infrastructure
+    networks:
+      - public
+      - backend
+
+  notification:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileNotification
+    restart: unless-stopped
+    command: uvicorn src.notification.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "127.0.0.1:8004:8000"
+    env_file:
+      - .env
+    volumes:
+      - ../src/notification:/app/src/notification
+      - ../src/infrastructure:/app/src/infrastructure
+    depends_on:
+      postgres:
+        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
     networks:
       - public
       - backend

@@ -1,4 +1,5 @@
-from src.notification.domain.schemas import NotificationCreate, NotificationGet
+from src.notification.domain.events import NotificationEvent
+from src.notification.domain.schemas import NotificationGet
 from src.notification.infrastructure.storage.postgresql.repository import NotificationRepository
 
 
@@ -10,8 +11,8 @@ class CreateNotification:
     def __init__(self, repository: NotificationRepository) -> None:
         self.repository = repository
 
-    async def execute(self, req: NotificationCreate) -> str:
-        return await self.repository.create(req)
+    async def execute(self, event: NotificationEvent) -> str:
+        return await self.repository.create(profile_id=str(event.profile_id), text=event.text)
 
 
 class GetNotifications:

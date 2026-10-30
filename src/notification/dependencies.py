@@ -30,6 +30,12 @@ def create_notification_uc(
     return usecase.CreateNotification(repository=repo)
 
 
+def get_notifications_uc(
+    repo: Annotated[NotificationRepository, Depends(get_repository)],
+) -> usecase.GetNotifications:
+    return usecase.GetNotifications(repository=repo)
+
+
 def read_notification_uc(
     repo: Annotated[NotificationRepository, Depends(get_repository)],
 ) -> usecase.ReadNotification:

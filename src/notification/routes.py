@@ -9,9 +9,15 @@ from src.notification.domain.schemas import (
     Error,
     NotificationCreate,
     NotificationCreatedResponse,
+    NotificationsGetResponse,
     ValidationErrors,
 )
-from src.notification.usecase import CreateNotification, NotificationNotFoundError, ReadNotification
+from src.notification.usecase import (
+    CreateNotification,
+    GetNotifications,
+    NotificationNotFoundError,
+    ReadNotification,
+)
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
@@ -31,6 +37,26 @@ async def create_notification(
 ) -> NotificationCreatedResponse:
     notification_id = await usecase.execute(req)
     return NotificationCreatedResponse(id=UUID(notification_id))
+
+
+@router.get(
+    "/{profile_id}",
+    operation_id="getNotifications",
+    response_model=NotificationsGetResponse,
+    responses={
+        422: {"model": ValidationErrors, "description": "Invalid request parameters or body"},
+    },
+)
+async def get_notifications(
+    profile_id: UUID,
+    usecase: Annotated[GetNotifications, Depends(dependencies.get_notifications_uc)],
+    limit: Annotated[int | None, Query(
+        description="Maximum number of notifications to return.", default=10
+    )] = None,
+    offset: Annotated[int, Query(description="Number of notifications to skip.")] = 0,
+) -> NotificationsGetResponse:
+    notifications = await usecase.execute(str(profile_id), limit=limit, offset=offset)
+    return NotificationsGetResponse(notifications=notifications)
 
 
 @router.post(

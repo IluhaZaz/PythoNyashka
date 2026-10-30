@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -10,6 +11,20 @@ class NotificationCreate(BaseModel):
 
 class NotificationCreatedResponse(BaseModel):
     id: UUID
+
+
+class NotificationGet(BaseModel):
+    id: UUID
+    profile_id: UUID
+    text: str
+    is_read: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class NotificationsGetResponse(BaseModel):
+    notifications: list[NotificationGet]
 
 
 class Error(BaseModel):

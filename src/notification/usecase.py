@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from src.infrastructure.messaging.kafka.events import NotificationEvent
 from src.notification.domain.schemas import NotificationGet
 from src.notification.infrastructure.messaging.kafka.consumer import NotificationConsumer
+from src.notification.infrastructure.messaging.smtp.sender import SMTPSender
 from src.notification.infrastructure.storage.postgresql.repository import NotificationRepository
 
 logger = logging.getLogger(__name__)
@@ -20,9 +21,11 @@ class CreateNotification:
         self,
         consumer: NotificationConsumer,
         session_factory: async_sessionmaker[AsyncSession],
+        sender: SMTPSender,
     ) -> None:
         self.consumer = consumer
         self.session_factory = session_factory
+        self.sender = sender
 
     async def execute(self) -> None:
         while True:
@@ -34,8 +37,12 @@ class CreateNotification:
                         notification_id = await NotificationRepository(session).create(
                             profile_id=str(event.profile_id), text=event.text,
                         )
+                    if event.email is not None:
+                        await self.sender.send(event.email, event.subject, event.text)
             except Exception:
-                logger.exception("Failed to save notification; retrying without Kafka commit")
+                logger.exception(
+                    "Failed to create notification or send email; retrying without Kafka commit",
+                )
                 self.consumer.retry()
                 await asyncio.sleep(self.consumer.retry_backoff_seconds)
                 continue

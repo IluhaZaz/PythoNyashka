@@ -36,6 +36,7 @@ class Register:
         await self.notification_publisher.publish(
             req.profile_id,
             "Добро пожаловать в PythoNyashka! Регистрация завершена.",
+            email=req.email, subject="Добро пожаловать в PythoNyashka!",
         )
 
         return id_
@@ -187,6 +188,7 @@ class ChangePassword:
         await self.notification_publisher.publish(
             user.profile_id,
             "Ваш пароль успешно изменён.",
+            email=user.email, subject="Изменение пароля PythoNyashka",
         )
 
 

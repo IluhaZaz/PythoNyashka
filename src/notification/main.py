@@ -10,6 +10,7 @@ from src.infrastructure.messaging.kafka.config import KafkaConfig
 from src.infrastructure.storage.postgresql.core import DBSession
 from src.notification.domain.schemas import ValidationErrorItem, ValidationErrors
 from src.notification.infrastructure.messaging.kafka.consumer import NotificationConsumer
+from src.notification.infrastructure.messaging.smtp.sender import SMTPConfig, SMTPSender
 from src.notification.routes import router
 from src.notification.usecase import CreateNotification
 
@@ -17,7 +18,7 @@ from src.notification.usecase import CreateNotification
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     consumer = NotificationConsumer(KafkaConfig())
-    create_notification = CreateNotification(consumer, DBSession)
+    create_notification = CreateNotification(consumer, DBSession, SMTPSender(SMTPConfig()))
     app.state.notification_consumer = consumer
     try:
         await consumer.start()

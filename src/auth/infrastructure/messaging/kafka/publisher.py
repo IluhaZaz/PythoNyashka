@@ -16,9 +16,15 @@ class NotificationPublisher:
         self.producer = producer
         self.config = config
 
-    async def publish(self, profile_id: str, text: str) -> None:
+    async def publish(
+        self, profile_id: str, text: str, *,
+        email: str | None = None, subject: str = "PythoNyashka",
+    ) -> None:
         try:
-            event = NotificationEvent(source="auth", profile_id=UUID(profile_id), text=text)
+            event = NotificationEvent(
+                source="auth", profile_id=UUID(profile_id), text=text,
+                email=email, subject=subject,
+            )
             await asyncio.wait_for(
                 self.producer.send_and_wait(
                     self.config.notifications_topic,

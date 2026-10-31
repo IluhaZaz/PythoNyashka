@@ -16,14 +16,69 @@ services:
     image: pgsty/silo
     restart: unless-stopped
     command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+    env_file:
+      - .env
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
       - minio_data:/data
+    networks:
+      - public
+      - backend
+
+  kafka:
+    image: apache/kafka:4.4.0
+    restart: unless-stopped
+    ports:
+      - "9092:9094"
+    env_file:
+      - .env
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "kafka:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      start_period: 30s
+      retries: 12
+    networks:
+      - public
+      - backend
+
+  kafka-init:
+    image: apache/kafka:4.4.0
+    restart: on-failure
+    entrypoint: ["/opt/kafka/bin/kafka-topics.sh"]
+    command:
+      - --bootstrap-server
+      - kafka:9092
+      - --create
+      - --if-not-exists
+      - --topic
+      - notification.events
+      - --partitions
+      - "1"
+      - --replication-factor
+      - "1"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - backend
+
+  kafka-ui:
+    image: kafbat/kafka-ui:v1.5.0
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     networks:
       - public
       - backend
@@ -38,6 +93,9 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
     volumes:
       - ../src/auth:/app/src/auth
       - ../src/infrastructure:/app/src/infrastructure
@@ -81,6 +139,28 @@ services:
       - public
       - backend
 
+  notification:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileNotification
+    restart: unless-stopped
+    command: uvicorn src.notification.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8004:8000"
+    env_file:
+      - .env
+    volumes:
+      - ../src/notification:/app/src/notification
+      - ../src/infrastructure:/app/src/infrastructure
+    depends_on:
+      postgres:
+        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
+    networks:
+      - public
+      - backend
+
   bff:
     build:
       context: ..
@@ -91,15 +171,12 @@ services:
       - "8003:8000"
     env_file:
       - .env
-    environment:
-      BFF_AUTH_BASE_URL: http://auth:8000
-      BFF_PROFILE_BASE_URL: http://profile:8000
-      BFF_MEDIA_BASE_URL: http://media:8000
     volumes:
       - ../src/bff:/app/src/bff
       - ../generated/clients/auth:/app/generated/clients/auth
       - ../generated/clients/profile:/app/generated/clients/profile
       - ../generated/clients/media:/app/generated/clients/media
+      - ../generated/clients/notification:/app/generated/clients/notification
     networks:
       - public
       - backend
@@ -107,10 +184,12 @@ services:
       - auth
       - profile
       - media
+      - notification
 
 volumes:
   postgres_data:
   minio_data:
+  kafka_data:
 
 networks:
   public:

@@ -2,21 +2,23 @@ openapi: 3.0.3
 info:
   title: Notification Service API
   description: |
-    Internal service for creating, listing, and marking notifications as read.
+    Internal service for listing and marking notifications as read.
+    Notifications are created from events consumed from Kafka.
   version: 1.0.0
 paths:
-  /notifications:
+  /notifications/{profile_id}:
     get:
       summary: Get profile notifications
       operationId: getNotifications
       tags: [Notifications]
       parameters:
-        - $ref: '#/components/parameters/ProfileId'
+        - $ref: '#/components/parameters/ProfileIdPath'
         - name: limit
           in: query
           description: Maximum number of notifications to return.
           schema:
             type: integer
+            default: 10
         - name: offset
           in: query
           description: Number of notifications to skip.
@@ -35,31 +37,6 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/NotificationGet'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-    post:
-      summary: Create a notification
-      operationId: createNotification
-      tags: [Notifications]
-      description: The service generates id and created_at and sets is_read to false.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NotificationCreate'
-      responses:
-        '201':
-          description: Notification created
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [id]
-                properties:
-                  id:
-                    type: string
-                    format: uuid
         '422':
           $ref: '#/components/responses/ValidationError'
   /notifications/{notification_id}/read:
@@ -91,6 +68,14 @@ paths:
           $ref: '#/components/responses/ValidationError'
 components:
   parameters:
+    ProfileIdPath:
+      name: profile_id
+      in: path
+      required: true
+      description: Current profile ID supplied by the BFF from the validated JWT.
+      schema:
+        type: string
+        format: uuid
     ProfileId:
       name: profile_id
       in: query
@@ -100,19 +85,9 @@ components:
         type: string
         format: uuid
   schemas:
-    NotificationCreate:
-      type: object
-      required: [profile_id, text]
-      properties:
-        profile_id:
-          type: string
-          format: uuid
-          description: Recipient profile ID.
-        text:
-          type: string
     NotificationGet:
       type: object
-      required: [id, profile_id, text, is_read, created_at]
+      required: [id, profile_id, text, is_read, is_sent, created_at]
       properties:
         id:
           type: string
@@ -124,9 +99,25 @@ components:
           type: string
         is_read:
           type: boolean
+        is_sent:
+          type: boolean
         created_at:
           type: string
           format: date-time
+    ValidationErrors:
+      type: object
+      required: [errors]
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, reason]
+            properties:
+              field:
+                type: string
+              reason:
+                type: string
     Error:
       type: object
       required: [error]
@@ -139,4 +130,6 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ValidationErrors'
+
+#poetry run openapi-python-client generate --path openapi/profile/contract.yaml --meta none --overwrite --output-path generated/clients/profile

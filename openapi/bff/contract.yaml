@@ -318,6 +318,61 @@ paths:
         '204':
           description: OK
 
+  /notifications:
+    get:
+      summary: Get current profile notifications
+      operationId: getNotifications
+      tags: [Notifications]
+      description: |
+        BFF reads profile_id from the validated access JWT and retrieves notifications for that profile from Notification Service.
+        The client does not supply profile_id. BFF forwards limit and offset to Notification Service.
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of notifications to return.
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          description: Number of notifications to skip.
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          $ref: '#/components/responses/NotificationsGetResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableNotificationResponse'
+
+  /notifications/{notification_id}/read:
+    post:
+      summary: Mark a notification as read
+      operationId: readNotification
+      tags: [Notifications]
+      description: |
+        BFF reads profile_id from the validated access JWT and passes it with notification_id to Notification Service.
+        The client does not supply profile_id. Only a notification belonging to the current profile can be marked as read.
+        Repeated calls return 204. Returns 404 if absent or owned by another profile.
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Notification marked as read or already read. No response body.
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotificationNotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableNotificationResponse'
+
 components:
   securitySchemes:
     BearerAuth:
@@ -590,6 +645,26 @@ components:
           type: string
           format: date-time
 
+    NotificationGet:
+      type: object
+      required: [id, profile_id, text, is_read, is_sent, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        profile_id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        is_read:
+          type: boolean
+        is_sent:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
     MatchGet:
       type: object
       properties:
@@ -734,6 +809,48 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/MatchGet'
+
+    NotificationsGetResponse:
+      description: Notifications ordered by created_at descending, then id descending. Applies offset and limit; returns an empty list if no notifications remain.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [notifications]
+            properties:
+              notifications:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationGet'
+    NotificationNotFoundResponse:
+      description: Notification absent or owned by another profile.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableNotificationResponse:
+      description: Invalid request parameters.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: array
+                items:
+                  type: object
+                  required: [loc, msg, type]
+                  properties:
+                    loc:
+                      type: array
+                      items:
+                        anyOf:
+                          - type: string
+                          - type: integer
+                    msg:
+                      type: string
+                    type:
+                      type: string
 
     AuthTokenResponse:
       description: Access and refresh tokens issued successfully.

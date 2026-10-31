@@ -22,6 +22,8 @@ boto3 = "^1.43.120"
 python-multipart = "^0.0.32"
 httpx = "^0.28.1"
 attrs = "^26.1.0"
+aiokafka = "^0.15.0"
+tenacity = ">=9.1.2,<10"
 
 [[tool.poetry.source]]
 name = "PyPI"

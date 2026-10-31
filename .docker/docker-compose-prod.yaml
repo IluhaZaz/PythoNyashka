@@ -3,7 +3,7 @@ services:
     image: postgres:16
     restart: unless-stopped
     env_file:
-      - .env.prod
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -13,11 +13,51 @@ services:
     image: minio/minio:latest
     restart: unless-stopped
     command: server /data
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+    env_file:
+      - .env
     volumes:
       - minio_data:/data
+    networks:
+      - backend
+
+  kafka:
+    image: apache/kafka:4.4.0
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      KAFKA_LISTENERS: ${KAFKA_PROD_LISTENERS}
+      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_PROD_ADVERTISED_LISTENERS}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: ${KAFKA_PROD_LISTENER_SECURITY_PROTOCOL_MAP}
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "kafka:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      start_period: 30s
+      retries: 12
+    networks:
+      - backend
+
+  kafka-init:
+    image: apache/kafka:4.4.0
+    restart: on-failure
+    entrypoint: ["/opt/kafka/bin/kafka-topics.sh"]
+    command:
+      - --bootstrap-server
+      - kafka:9092
+      - --create
+      - --if-not-exists
+      - --topic
+      - notification.events
+      - --partitions
+      - "1"
+      - --replication-factor
+      - "1"
+    depends_on:
+      kafka:
+        condition: service_healthy
     networks:
       - backend
 
@@ -28,7 +68,10 @@ services:
     restart: unless-stopped
     command: uvicorn src.auth.main:app --host 0.0.0.0 --port 8000
     env_file:
-      - .env.prod
+      - .env
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
     volumes:
       - ../src/auth:/app/src/auth
       - ../src/infrastructure:/app/src/infrastructure
@@ -42,7 +85,7 @@ services:
     restart: unless-stopped
     command: uvicorn src.profile.main:app --host 0.0.0.0 --port 8000
     env_file:
-      - .env.prod
+      - .env
     volumes:
       - ../src/profile:/app/src/profile
       - ../src/infrastructure:/app/src/infrastructure
@@ -56,10 +99,25 @@ services:
     restart: unless-stopped
     command: uvicorn src.media.main:app --host 0.0.0.0 --port 8000
     env_file:
-      - .env.prod
+      - .env
     volumes:
       - ../src/media:/app/src/media
       - ../src/infrastructure:/app/src/infrastructure
+    networks:
+      - backend
+
+  notification:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileNotification
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_started
+      kafka-init:
+        condition: service_completed_successfully
     networks:
       - backend
 
@@ -72,11 +130,7 @@ services:
     ports:
       - "8003:8000"
     env_file:
-      - .env.prod
-    environment:
-      BFF_AUTH_BASE_URL: http://auth:8000
-      BFF_PROFILE_BASE_URL: http://profile:8000
-      BFF_MEDIA_BASE_URL: http://media:8000
+      - .env
     networks:
       - public
       - backend
@@ -84,10 +138,12 @@ services:
       - auth
       - profile
       - media
+      - notification
 
 volumes:
   postgres_data:
   minio_data:
+  kafka_data:
 
 
 networks:

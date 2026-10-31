@@ -25,6 +25,12 @@ from generated.clients.media.client import Client as MediaClient
 from generated.clients.media.models.media_create import MediaCreate
 from generated.clients.media.models.upload_media_response_201 import UploadMediaResponse201
 from generated.clients.media.types import File
+from generated.clients.notification.api.notifications import get_notifications, read_notification
+from generated.clients.notification.client import Client as NotificationClient
+from generated.clients.notification.models.error import Error as NotificationClientError
+from generated.clients.notification.models.get_notifications_response_200 import (
+    GetNotificationsResponse200,
+)
 from generated.clients.profile.api.profiles import (
     create_profile,
     delete_profile,
@@ -45,6 +51,7 @@ from src.bff.domain.schemas import (
     ChangePasswordRequest,
     ErrorResponse,
     LoginRequest,
+    NotificationsGetResponse,
     ProfileCreate,
     ProfileCreatedResponse,
     ProfileGetResponse,
@@ -57,6 +64,54 @@ class InvalidCredentialsError(Exception):
     def __init__(self, error: str) -> None:
         self.error = error
         super().__init__(error)
+
+
+class GetNotifications:
+    def __init__(self, profile_id: UUID | None, client: NotificationClient) -> None:
+        self.profile_id = profile_id
+        self.client = client
+
+    async def execute(self, limit: int = 10, offset: int = 0) -> NotificationsGetResponse:
+        if self.profile_id is None:
+            raise InvalidCredentialsError("Невалидный access-токен")
+
+        response = await get_notifications.asyncio_detailed(
+            self.profile_id, client=self.client, limit=limit, offset=offset,
+        )
+        if response.status_code == HTTPStatus.OK and isinstance(
+            response.parsed, GetNotificationsResponse200,
+        ):
+            return NotificationsGetResponse.model_validate_json(response.content)
+        raise RuntimeError(f"Unexpected Notification Service response: {response.status_code}")
+
+
+class NotificationNotFoundError(Exception):
+    def __init__(self, error: str) -> None:
+        self.error = error
+        super().__init__(error)
+
+
+class ReadNotification:
+    def __init__(self, profile_id: UUID | None, client: NotificationClient) -> None:
+        self.profile_id = profile_id
+        self.client = client
+
+    async def execute(self, notification_id: UUID) -> None:
+        if self.profile_id is None:
+            raise InvalidCredentialsError("Невалидный access-токен")
+
+        response = await read_notification.asyncio_detailed(
+            notification_id, client=self.client, profile_id=self.profile_id,
+        )
+        if response.status_code == HTTPStatus.NO_CONTENT:
+            return
+        if response.status_code == HTTPStatus.NOT_FOUND and isinstance(
+            response.parsed, NotificationClientError,
+        ):
+            error = ErrorResponse.model_validate_json(response.content)
+            raise NotificationNotFoundError(error.error)
+
+        raise RuntimeError(f"Unexpected Notification Service response: {response.status_code}")
 
 
 class Login:

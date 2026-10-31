@@ -129,3 +129,5 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ValidationErrors'
+
+#poetry run openapi-python-client generate --path openapi/profile/contract.yaml --meta none --overwrite --output-path generated/clients/profile

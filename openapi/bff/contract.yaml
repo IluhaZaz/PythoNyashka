@@ -332,11 +332,13 @@ paths:
           description: Maximum number of notifications to return.
           schema:
             type: integer
+            default: 10
         - name: offset
           in: query
           description: Number of notifications to skip.
           schema:
             type: integer
+            default: 0
       responses:
         '200':
           $ref: '#/components/responses/NotificationsGetResponse'
@@ -829,7 +831,24 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ValidationErrors'
+            type: object
+            properties:
+              detail:
+                type: array
+                items:
+                  type: object
+                  required: [loc, msg, type]
+                  properties:
+                    loc:
+                      type: array
+                      items:
+                        anyOf:
+                          - type: string
+                          - type: integer
+                    msg:
+                      type: string
+                    type:
+                      type: string
 
     AuthTokenResponse:
       description: Access and refresh tokens issued successfully.

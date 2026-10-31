@@ -16,5 +16,6 @@ COPY src/bff/ src/bff/
 COPY generated/clients/auth/ generated/clients/auth/
 COPY generated/clients/profile/ generated/clients/profile/
 COPY generated/clients/media/ generated/clients/media/
+COPY generated/clients/notification/ generated/clients/notification/
 
 CMD ["uvicorn", "src.bff.main:app", "--host", "0.0.0.0", "--port", "8000"]

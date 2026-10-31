@@ -9,16 +9,25 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from generated.clients.auth.client import AuthenticatedClient, Client
 from generated.clients.media.client import Client as MediaClient
+from generated.clients.notification.client import Client as NotificationClient
 from generated.clients.profile.client import Client as ProfileClient
-from src.bff.config import AuthClientConfig, MediaClientConfig, ProfileClientConfig, TokenConfig
+from src.bff.config import (
+    AuthClientConfig,
+    MediaClientConfig,
+    NotificationClientConfig,
+    ProfileClientConfig,
+    TokenConfig,
+)
 from src.bff.security import AccessTokenVerifier
 from src.bff.usecase import (
     ChangePassword,
     CreateProfile,
     GetMedia,
+    GetNotifications,
     GetProfile,
     Login,
     Logout,
+    ReadNotification,
     Refresh,
     UpdateProfile,
 )
@@ -155,3 +164,31 @@ def get_media_uc(
     client: Annotated[MediaClient, Depends(get_media_client)],
 ) -> GetMedia:
     return GetMedia(client=client, authenticated=profile_id is not None)
+
+
+def get_notification_config() -> NotificationClientConfig:
+    return NotificationClientConfig()
+
+
+async def get_notification_client(
+    config: Annotated[NotificationClientConfig, Depends(get_notification_config)],
+) -> AsyncIterator[NotificationClient]:
+    async with NotificationClient(
+        base_url=config.base_url,
+        timeout=httpx.Timeout(config.timeout_seconds),
+    ) as client:
+        yield client
+
+
+def get_notifications_uc(
+    profile_id: Annotated[UUID | None, Depends(get_current_profile_id)],
+    client: Annotated[NotificationClient, Depends(get_notification_client)],
+) -> GetNotifications:
+    return GetNotifications(profile_id=profile_id, client=client)
+
+
+def read_notification_uc(
+    profile_id: Annotated[UUID | None, Depends(get_current_profile_id)],
+    client: Annotated[NotificationClient, Depends(get_notification_client)],
+) -> ReadNotification:
+    return ReadNotification(profile_id=profile_id, client=client)

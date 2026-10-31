@@ -43,6 +43,22 @@ class ErrorResponse(BaseModel):
     error: str
 
 
+class NotificationGet(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    id: UUID
+    profile_id: UUID
+    text: str
+    is_read: bool
+    created_at: datetime
+
+
+class NotificationsGetResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    notifications: list[NotificationGet]
+
+
 class ProfileCreate(BaseModel):
     model_config = ConfigDict(strict=True)
 

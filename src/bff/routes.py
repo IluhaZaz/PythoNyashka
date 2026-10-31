@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Depends, Form, Query
 from fastapi.responses import JSONResponse, Response
 
 from src.bff import dependencies
@@ -10,6 +10,7 @@ from src.bff.domain.schemas import (
     ChangePasswordRequest,
     ErrorResponse,
     LoginRequest,
+    NotificationsGetResponse,
     ProfileCreate,
     ProfileCreatedResponse,
     ProfileGetResponse,
@@ -20,14 +21,17 @@ from src.bff.usecase import (
     ChangePassword,
     CreateProfile,
     GetMedia,
+    GetNotifications,
     GetProfile,
     InvalidCredentialsError,
     InvalidOldPasswordError,
     Login,
     Logout,
     MediaNotFoundError,
+    NotificationNotFoundError,
     ProfileAlreadyExistsError,
     ProfileNotFoundError,
+    ReadNotification,
     Refresh,
     UpdateProfile,
 )
@@ -35,6 +39,58 @@ from src.bff.usecase import (
 router = APIRouter()
 profiles_router = APIRouter()
 media_router = APIRouter()
+notifications_router = APIRouter()
+
+
+@notifications_router.get(
+    "/notifications",
+    operation_id="getNotifications",
+    response_model=NotificationsGetResponse,
+    responses={401: {"model": ErrorResponse}},
+    tags=["Notifications"],
+)
+async def get_notifications(
+    usecase: Annotated[GetNotifications, Depends(dependencies.get_notifications_uc)],
+    limit: Annotated[int, Query(description="Maximum number of notifications to return.")] = 10,
+    offset: Annotated[int, Query(description="Number of notifications to skip.")] = 0,
+) -> NotificationsGetResponse | JSONResponse:
+    try:
+        return await usecase.execute(limit=limit, offset=offset)
+    except InvalidCredentialsError as exc:
+        return JSONResponse(
+            status_code=401,
+            content=ErrorResponse(error=exc.error).model_dump(),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+@notifications_router.post(
+    "/notifications/{notification_id}/read",
+    status_code=204,
+    operation_id="readNotification",
+    response_class=Response,
+    responses={401: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    tags=["Notifications"],
+)
+async def read_notification(
+    notification_id: UUID,
+    usecase: Annotated[ReadNotification, Depends(dependencies.read_notification_uc)],
+) -> Response:
+    try:
+        await usecase.execute(notification_id)
+    except InvalidCredentialsError as exc:
+        return JSONResponse(
+            status_code=401,
+            content=ErrorResponse(error=exc.error).model_dump(),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except NotificationNotFoundError as exc:
+        return JSONResponse(
+            status_code=404,
+            content=ErrorResponse(error=exc.error).model_dump(),
+        )
+
+    return Response(status_code=204)
 
 
 @router.post(

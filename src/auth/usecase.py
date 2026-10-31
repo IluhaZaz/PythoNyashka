@@ -1,19 +1,28 @@
 import hashlib
 import secrets
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from pwdlib import PasswordHash
 
-from src.auth.domain.schemas import RegisterRequest, LoginRequest, AuthTokens, RefreshTokenRequest, \
-    ChangePasswordRequest
+from src.auth.domain.schemas import (
+    AuthTokens,
+    ChangePasswordRequest,
+    LoginRequest,
+    RefreshTokenRequest,
+    RegisterRequest,
+)
+from src.auth.infrastructure.messaging.kafka.publisher import NotificationPublisher
 from src.auth.infrastructure.storage.postgresql.repository import AuthRepository
-from src.auth.security import password_hasher, TokenService, DUMMY_PASSWORD_HASH
+from src.auth.security import DUMMY_PASSWORD_HASH, TokenService, password_hasher
 
 
 class Register:
-    def __init__(self, repository: AuthRepository):
+    def __init__(
+        self, repository: AuthRepository, notification_publisher: NotificationPublisher,
+    ) -> None:
         self.repository = repository
+        self.notification_publisher = notification_publisher
 
     async def execute(self, req: RegisterRequest) -> str:
         pass_hash = password_hasher.hash(req.password)
@@ -22,6 +31,11 @@ class Register:
             email=req.email,
             profile_id=req.profile_id,
             pass_hash=pass_hash
+        )
+
+        await self.notification_publisher.publish(
+            req.profile_id,
+            "Добро пожаловать в PythoNyashka! Регистрация завершена.",
         )
 
         return id_
@@ -126,9 +140,11 @@ class ChangePassword:
             self,
             repository: AuthRepository,
             token_service: TokenService,
+            notification_publisher: NotificationPublisher,
     ):
         self.repository = repository
         self.token_service = token_service
+        self.notification_publisher = notification_publisher
         self.password_hasher = PasswordHash.recommended()
 
     async def execute(
@@ -167,6 +183,11 @@ class ChangePassword:
 
         if not changed:
             raise InvalidOldPasswordError()
+
+        await self.notification_publisher.publish(
+            user.profile_id,
+            "Ваш пароль успешно изменён.",
+        )
 
 
 class InvalidRefreshTokenError(Exception):

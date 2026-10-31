@@ -1,11 +1,13 @@
 from collections.abc import AsyncIterator
+from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import usecase
+from src.auth.infrastructure.messaging.kafka.publisher import NotificationPublisher
 from src.auth.infrastructure.storage.postgresql.repository import AuthRepository
-from src.auth.security import TokenService, AuthConfig
+from src.auth.security import AuthConfig, TokenService
 from src.infrastructure.storage.postgresql.core import DBSession
 
 
@@ -19,23 +21,28 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 
 def get_repository(
-    session: AsyncSession = Depends(get_session),
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> AuthRepository:
     return AuthRepository(session)
 
 
+def get_notification_publisher(request: Request) -> NotificationPublisher:
+    return request.app.state.notification_publisher
+
+
 def register_uc(
-    repo: AuthRepository = Depends(get_repository),
+    repo: Annotated[AuthRepository, Depends(get_repository)],
+    publisher: Annotated[NotificationPublisher, Depends(get_notification_publisher)],
 ) -> usecase.Register:
-    return usecase.Register(repository=repo)
+    return usecase.Register(repository=repo, notification_publisher=publisher)
 
 def get_token_service() -> TokenService:
     return TokenService(AuthConfig())
 
 
 def login_uc(
-    repo: AuthRepository = Depends(get_repository),
-    token_service: TokenService = Depends(get_token_service),
+    repo: Annotated[AuthRepository, Depends(get_repository)],
+    token_service: Annotated[TokenService, Depends(get_token_service)],
 ) -> usecase.Login:
     return usecase.Login(
         repository=repo,
@@ -43,8 +50,8 @@ def login_uc(
     )
 
 def logout_uc(
-    repo: AuthRepository = Depends(get_repository),
-    token_service: TokenService = Depends(get_token_service),
+    repo: Annotated[AuthRepository, Depends(get_repository)],
+    token_service: Annotated[TokenService, Depends(get_token_service)],
 ) -> usecase.Logout:
     return usecase.Logout(
         repository=repo,
@@ -52,17 +59,19 @@ def logout_uc(
     )
 
 def change_password_uc(
-    repo: AuthRepository = Depends(get_repository),
-    token_service: TokenService = Depends(get_token_service),
+    repo: Annotated[AuthRepository, Depends(get_repository)],
+    token_service: Annotated[TokenService, Depends(get_token_service)],
+    publisher: Annotated[NotificationPublisher, Depends(get_notification_publisher)],
 ) -> usecase.ChangePassword:
     return usecase.ChangePassword(
         repository=repo,
         token_service=token_service,
+        notification_publisher=publisher,
     )
 
 def refresh_uc(
-    repo: AuthRepository = Depends(get_repository),
-    token_service: TokenService = Depends(get_token_service),
+    repo: Annotated[AuthRepository, Depends(get_repository)],
+    token_service: Annotated[TokenService, Depends(get_token_service)],
 ) -> usecase.Refresh:
     return usecase.Refresh(
         repository=repo,

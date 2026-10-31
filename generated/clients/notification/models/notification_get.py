@@ -19,6 +19,7 @@ class NotificationGet:
         profile_id (UUID):
         text (str):
         is_read (bool):
+        is_sent (bool):
         created_at (datetime.datetime):
     """
 
@@ -26,6 +27,7 @@ class NotificationGet:
     profile_id: UUID
     text: str
     is_read: bool
+    is_sent: bool
     created_at: datetime.datetime
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -38,6 +40,8 @@ class NotificationGet:
 
         is_read = self.is_read
 
+        is_sent = self.is_sent
+
         created_at = self.created_at.isoformat()
 
         field_dict: dict[str, Any] = {}
@@ -48,6 +52,7 @@ class NotificationGet:
                 "profile_id": profile_id,
                 "text": text,
                 "is_read": is_read,
+                "is_sent": is_sent,
                 "created_at": created_at,
             }
         )
@@ -65,6 +70,8 @@ class NotificationGet:
 
         is_read = d.pop("is_read")
 
+        is_sent = d.pop("is_sent")
+
         created_at = datetime.datetime.fromisoformat(d.pop("created_at"))
 
         notification_get = cls(
@@ -72,6 +79,7 @@ class NotificationGet:
             profile_id=profile_id,
             text=text,
             is_read=is_read,
+            is_sent=is_sent,
             created_at=created_at,
         )
 

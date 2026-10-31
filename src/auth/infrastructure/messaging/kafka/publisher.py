@@ -5,16 +5,14 @@ from uuid import UUID
 from aiokafka import AIOKafkaProducer
 from aiokafka.errors import KafkaError
 
-from src.infrastructure.messaging.kafka.config import KafkaConfig
 from src.infrastructure.messaging.kafka.events import NotificationEvent
 
 logger = logging.getLogger(__name__)
 
 
 class NotificationPublisher:
-    def __init__(self, producer: AIOKafkaProducer, config: KafkaConfig) -> None:
+    def __init__(self, producer: AIOKafkaProducer) -> None:
         self.producer = producer
-        self.config = config
 
     async def publish(
         self, profile_id: str, text: str, *,
@@ -27,11 +25,11 @@ class NotificationPublisher:
             )
             await asyncio.wait_for(
                 self.producer.send_and_wait(
-                    self.config.notifications_topic,
+                    "notification.events",
                     value=event.model_dump_json().encode("utf-8"),
                     key=str(event.profile_id).encode("utf-8"),
                 ),
-                timeout=self.config.publish_timeout_seconds,
+                timeout=5.0,
             )
         except (KafkaError, TimeoutError, ValueError):
             logger.exception(

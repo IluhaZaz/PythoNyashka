@@ -9,6 +9,7 @@ class NotificationGet(BaseModel):
     profile_id: UUID
     text: str
     is_read: bool
+    is_sent: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -56,7 +56,7 @@ services:
       - --create
       - --if-not-exists
       - --topic
-      - ${KAFKA_NOTIFICATIONS_TOPIC}
+      - notification.events
       - --partitions
       - "1"
       - --replication-factor

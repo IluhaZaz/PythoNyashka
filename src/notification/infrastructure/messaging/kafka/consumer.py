@@ -1,16 +1,15 @@
-from src.infrastructure.messaging.kafka.config import KafkaConfig
 from src.infrastructure.messaging.kafka.consumer import BaseKafkaConsumer
 from src.infrastructure.messaging.kafka.events import NotificationEvent
 
 
 class NotificationConsumer(BaseKafkaConsumer):
-    def __init__(self, config: KafkaConfig) -> None:
+    def __init__(self, bootstrap_servers: str) -> None:
         super().__init__(
-            bootstrap_servers=config.bootstrap_servers,
-            topic=config.notifications_topic,
-            group_id=config.notifications_group_id,
-            retry_backoff_seconds=config.retry_backoff_seconds,
-            processing_timeout_seconds=config.processing_timeout_seconds,
+            bootstrap_servers=bootstrap_servers,
+            topic="notification.events",
+            group_id="notification-service",
+            retry_backoff_seconds=1.0,
+            processing_timeout_seconds=30.0,
         )
 
     def _transfrom(self, data: dict[str, object]) -> NotificationEvent:

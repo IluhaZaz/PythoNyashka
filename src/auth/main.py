@@ -15,9 +15,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     config = KafkaConfig()
     producer = create_producer(
         bootstrap_servers=config.bootstrap_servers,
-        request_timeout_ms=max(1, int(config.publish_timeout_seconds * 1000)),
+        request_timeout_ms=5000,
     )
-    app.state.notification_publisher = NotificationPublisher(producer, config)
+    app.state.notification_publisher = NotificationPublisher(producer)
     try:
         await producer.start()
         yield

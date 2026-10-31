@@ -647,7 +647,7 @@ components:
 
     NotificationGet:
       type: object
-      required: [id, profile_id, text, is_read, created_at]
+      required: [id, profile_id, text, is_read, is_sent, created_at]
       properties:
         id:
           type: string
@@ -658,6 +658,8 @@ components:
         text:
           type: string
         is_read:
+          type: boolean
+        is_sent:
           type: boolean
         created_at:
           type: string

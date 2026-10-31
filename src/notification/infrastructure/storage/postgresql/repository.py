@@ -15,6 +15,15 @@ class NotificationRepository:
         await self.session.commit()
         return notification.id
 
+    async def set_sent_status(self, notification_id: str, is_sent: bool) -> None:
+        query = (
+            update(Notification)
+            .where(Notification.id == notification_id)
+            .values(is_sent=is_sent)
+        )
+        await self.session.execute(query)
+        await self.session.commit()
+
     async def get_by_profile(
         self, profile_id: str, limit: int | None = None, offset: int = 0,
     ) -> list[NotificationGet]:

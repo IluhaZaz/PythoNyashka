@@ -4,8 +4,26 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  migrations:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileMigrations
+    restart: "no"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - backend
 
@@ -70,6 +88,8 @@ services:
     env_file:
       - .env
     depends_on:
+      migrations:
+        condition: service_completed_successfully
       kafka-init:
         condition: service_completed_successfully
     volumes:
@@ -89,6 +109,9 @@ services:
     volumes:
       - ../src/profile:/app/src/profile
       - ../src/infrastructure:/app/src/infrastructure
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
     networks:
       - backend
 
@@ -103,6 +126,9 @@ services:
     volumes:
       - ../src/media:/app/src/media
       - ../src/infrastructure:/app/src/infrastructure
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
     networks:
       - backend
 
@@ -114,12 +140,28 @@ services:
     env_file:
       - .env
     depends_on:
-      postgres:
-        condition: service_started
+      migrations:
+        condition: service_completed_successfully
       kafka-init:
         condition: service_completed_successfully
     networks:
       - backend
+
+  chat:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileChat
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ../src/chat:/app/src/chat
+      - ../src/infrastructure:/app/src/infrastructure
+    networks:
+      - backend
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
 
   bff:
     build:

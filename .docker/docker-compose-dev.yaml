@@ -6,10 +6,28 @@ services:
       - .env
     ports:
       - "5442:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - public
+      - backend
+
+  migrations:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileMigrations
+    restart: "no"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
       - backend
 
   minio:
@@ -94,6 +112,8 @@ services:
     env_file:
       - .env
     depends_on:
+      migrations:
+        condition: service_completed_successfully
       kafka-init:
         condition: service_completed_successfully
     volumes:
@@ -120,7 +140,8 @@ services:
       - public
       - backend
     depends_on:
-      - postgres
+      migrations:
+        condition: service_completed_successfully
 
   media:
     build:
@@ -135,6 +156,9 @@ services:
     volumes:
       - ../src/media:/app/src/media
       - ../src/infrastructure:/app/src/infrastructure
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
     networks:
       - public
       - backend
@@ -153,13 +177,33 @@ services:
       - ../src/notification:/app/src/notification
       - ../src/infrastructure:/app/src/infrastructure
     depends_on:
-      postgres:
-        condition: service_started
+      migrations:
+        condition: service_completed_successfully
       kafka-init:
         condition: service_completed_successfully
     networks:
       - public
       - backend
+
+  chat:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileChat
+    restart: unless-stopped
+    command: uvicorn src.chat.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "127.0.0.1:8005:8000"
+    env_file:
+      - .env
+    volumes:
+      - ../src/chat:/app/src/chat
+      - ../src/infrastructure:/app/src/infrastructure
+    networks:
+      - public
+      - backend
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
 
   bff:
     build:

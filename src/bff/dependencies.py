@@ -8,11 +8,13 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from generated.clients.auth.client import AuthenticatedClient, Client
+from generated.clients.chat.client import Client as ChatClient
 from generated.clients.media.client import Client as MediaClient
 from generated.clients.notification.client import Client as NotificationClient
 from generated.clients.profile.client import Client as ProfileClient
 from src.bff.config import (
     AuthClientConfig,
+    ChatClientConfig,
     MediaClientConfig,
     NotificationClientConfig,
     ProfileClientConfig,
@@ -21,6 +23,7 @@ from src.bff.config import (
 from src.bff.security import AccessTokenVerifier
 from src.bff.usecase import (
     ChangePassword,
+    Chats,
     CreateProfile,
     GetMedia,
     GetNotifications,
@@ -192,3 +195,25 @@ def read_notification_uc(
     client: Annotated[NotificationClient, Depends(get_notification_client)],
 ) -> ReadNotification:
     return ReadNotification(profile_id=profile_id, client=client)
+
+
+def get_chat_config() -> ChatClientConfig:
+    return ChatClientConfig()
+
+
+async def get_chat_client(
+    config: Annotated[ChatClientConfig, Depends(get_chat_config)],
+) -> AsyncIterator[ChatClient]:
+    async with ChatClient(
+        base_url=config.base_url,
+        timeout=httpx.Timeout(config.timeout_seconds),
+    ) as client:
+        yield client
+
+
+def chats_uc(
+    profile_id: Annotated[UUID | None, Depends(get_current_profile_id)],
+    client: Annotated[ChatClient, Depends(get_chat_client)],
+    media_client: Annotated[MediaClient, Depends(get_media_client)],
+) -> Chats:
+    return Chats(profile_id=profile_id, client=client, media_client=media_client)

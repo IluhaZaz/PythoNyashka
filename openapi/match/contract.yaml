@@ -135,3 +135,5 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/MatchGet'
+
+#poetry run openapi-python-client generate --path openapi/match/contract.yaml --meta none --overwrite --output-path generated/clients/match

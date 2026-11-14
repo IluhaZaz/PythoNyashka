@@ -181,6 +181,7 @@ services:
       - profile
       - media
       - notification
+      - chat
 
 volumes:
   postgres_data:

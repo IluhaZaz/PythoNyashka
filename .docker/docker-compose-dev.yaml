@@ -221,6 +221,7 @@ services:
       - ../generated/clients/profile:/app/generated/clients/profile
       - ../generated/clients/media:/app/generated/clients/media
       - ../generated/clients/notification:/app/generated/clients/notification
+      - ../generated/clients/chat:/app/generated/clients/chat
     networks:
       - public
       - backend
@@ -229,6 +230,7 @@ services:
       - profile
       - media
       - notification
+      - chat
 
 volumes:
   postgres_data:

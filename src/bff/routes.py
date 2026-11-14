@@ -1,15 +1,20 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form, Query
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from src.bff import dependencies
 from src.bff.domain.schemas import (
     AuthTokens,
     ChangePasswordRequest,
+    ChatCreate,
+    ChatCreatedResponse,
+    ChatMessagesResponse,
+    ChatsResponse,
     ErrorResponse,
     LoginRequest,
+    MessageCreate,
     NotificationsGetResponse,
     ProfileCreate,
     ProfileCreatedResponse,
@@ -19,6 +24,7 @@ from src.bff.domain.schemas import (
 )
 from src.bff.usecase import (
     ChangePassword,
+    Chats,
     CreateProfile,
     GetMedia,
     GetNotifications,
@@ -40,6 +46,11 @@ router = APIRouter()
 profiles_router = APIRouter()
 media_router = APIRouter()
 notifications_router = APIRouter()
+chats_router = APIRouter(
+    prefix="/chats",
+    tags=["Chats"],
+    responses={401: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+)
 
 
 @notifications_router.get(
@@ -327,3 +338,59 @@ async def get_media_by_id(
     if content_disposition is not None:
         headers["Content-Disposition"] = content_disposition
     return Response(content=content, headers=headers)
+
+
+@chats_router.post("", operation_id="createChat", response_model=ChatCreatedResponse)
+async def create_chat(
+    req: ChatCreate,
+    usecase: Annotated[Chats, Depends(dependencies.chats_uc)],
+) -> ChatCreatedResponse:
+    return await usecase.create(req)
+
+
+@chats_router.get("", operation_id="getChats", response_model=ChatsResponse)
+async def get_chats(
+    usecase: Annotated[Chats, Depends(dependencies.chats_uc)],
+) -> ChatsResponse:
+    return await usecase.list()
+
+
+@chats_router.post(
+    "/{chat_id}/message",
+    operation_id="sendMessage",
+    status_code=204,
+    response_class=Response,
+    responses={
+        400: {"model": ErrorResponse},
+        413: {"model": ErrorResponse},
+        415: {"model": ErrorResponse},
+    },
+)
+async def send_message(
+    chat_id: UUID,
+    req: Annotated[MessageCreate, Form(media_type="multipart/form-data")],
+    usecase: Annotated[Chats, Depends(dependencies.chats_uc)],
+) -> Response:
+    await usecase.send(chat_id, req)
+    return Response(status_code=204)
+
+
+@chats_router.get(
+    "/{chat_id}/messages",
+    operation_id="getChatMessages",
+    response_model=ChatMessagesResponse,
+    response_model_exclude_none=True,
+)
+async def get_chat_messages(
+    chat_id: UUID,
+    request: Request,
+    usecase: Annotated[Chats, Depends(dependencies.chats_uc)],
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int | None, Query(ge=0)] = None,
+) -> ChatMessagesResponse:
+    return await usecase.messages(
+        chat_id,
+        offset=offset,
+        limit=limit,
+        media_url=lambda media_id: str(request.url_for("get_media_by_id", media_id=str(media_id))),
+    )

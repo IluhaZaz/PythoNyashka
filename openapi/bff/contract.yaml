@@ -147,6 +147,7 @@ paths:
   /chats:
     post:
       summary: Create a new chat
+      description: BFF includes the authenticated profile among the chat participants.
       operationId: createChat
       tags:
         - Chats
@@ -180,6 +181,7 @@ paths:
   /chats/{chat_id}/message:
     post:
       summary: Send message
+      description: Only chat participants can send messages. BFF takes the sender ID from the access JWT.
       operationId: sendMessage
       tags:
         - Chats
@@ -203,10 +205,29 @@ paths:
           description: OK
         '404':
           $ref: '#/components/responses/EntityNotFoundResponse'
+        '400':
+          description: Missing or malformed attachment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: Attachment exceeds the size limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Unsupported attachment type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /chats/{chat_id}/messages:
     get:
       summary: Get chat messages
+      description: Only chat participants can read the history.
       operationId: getChatMessages
       tags:
         - Chats

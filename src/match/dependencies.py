@@ -22,8 +22,11 @@ def get_repository(
     return MatchRepository(session)
 
 
-def get_next_match_uc(repo: MatchRepository = Depends(get_repository)) -> usecase.GetNextMatch:
-    return usecase.GetNextMatch(repository=repo)
+def get_next_match_uc(
+    repo: MatchRepository = Depends(get_repository),
+    session: AsyncSession = Depends(get_session)
+) -> usecase.GetNextMatch:
+    return usecase.GetNextMatch(repository=repo, session=session)
 
 
 def accept_match_uc(repo: MatchRepository = Depends(get_repository)) -> usecase.AcceptMatch:

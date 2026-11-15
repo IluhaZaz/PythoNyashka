@@ -1,4 +1,5 @@
-from sqlalchemy import select, update
+import uuid
+from sqlalchemy import select, update, not_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.match.domain.schemas import MatchGet
@@ -9,8 +10,7 @@ class MatchRepository:
     def __init__(self, session: AsyncSession):
         self.session: AsyncSession = session
 
-    async def get_next_pending(self, profile_id: str) -> MatchGet | None:
-        """Найти следующий матч в статусе noResponse, где пользователь является инициатором."""
+    async def get_active_pending(self, profile_id: str) -> MatchGet | None:
         query = (
             select(Match)
             .where(
@@ -25,6 +25,25 @@ class MatchRepository:
         if not match:
             return None
         return MatchGet.model_validate(match, from_attributes=True)
+
+    async def get_excluded_profile_ids(self, profile_id: str) -> list[str]:
+        query = select(Match.target_profile_id).where(Match.initiator_profile_id == profile_id)
+        result = await self.session.execute(query)
+        excluded = [row[0] for row in result.all()]
+        excluded.append(profile_id)  ж# Исключаем самого себя
+        return excluded
+
+    async def create_match(self, initiator_id: str, target_id: str) -> MatchGet:
+        new_match = Match(
+            id=str(uuid.uuid4()),
+            initiator_profile_id=initiator_id,
+            target_profile_id=target_id,
+            status="noResponse"
+        )
+        self.session.add(new_match)
+        await self.session.commit()
+        await self.session.refresh(new_match)
+        return MatchGet.model_validate(new_match, from_attributes=True)
 
     async def get_by_id(self, match_id: str) -> Match | None:
         query = select(Match).where(Match.id == match_id)

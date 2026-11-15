@@ -222,6 +222,7 @@ services:
       - ../generated/clients/media:/app/generated/clients/media
       - ../generated/clients/notification:/app/generated/clients/notification
       - ../generated/clients/chat:/app/generated/clients/chat
+      - ../generated/clients/match:/app/generated/clients/match
     networks:
       - public
       - backend
@@ -231,6 +232,27 @@ services:
       - media
       - notification
       - chat
+      - match
+
+  match:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileMatch
+    restart: unless-stopped
+    command: uvicorn src.match.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8006:8000"
+    env_file:
+      - .env
+    volumes:
+      - ../src/match:/app/src/match
+      - ../src/infrastructure:/app/src/infrastructure
+    networks:
+      - public
+      - backend
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:

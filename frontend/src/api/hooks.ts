@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { USE_MOCKS, api } from '@/api'
+import { MOCK_FEATURES, USE_MOCKS, api } from '@/api'
 import type { FeedFilters, SwipeDecision } from '@/api/types'
 import { mockSubscribe, mockTyping } from '@/api/mock'
 
@@ -19,7 +19,7 @@ export const keys = {
 export function useMockSync(): void {
   const queryClient = useQueryClient()
   useEffect(() => {
-    if (!USE_MOCKS) return
+    if (!MOCK_FEATURES) return
     return mockSubscribe(() => {
       void queryClient.invalidateQueries({ queryKey: keys.chats })
       void queryClient.invalidateQueries({ queryKey: keys.notifications })
@@ -34,11 +34,11 @@ export function useChatTyping(chatId: string | null): boolean {
   const query = useQuery({
     queryKey: ['typing', chatId],
     queryFn: () => (chatId ? mockTyping.has(chatId) : false),
-    enabled: USE_MOCKS && Boolean(chatId),
+    enabled: MOCK_FEATURES && Boolean(chatId),
     initialData: false,
   })
   useEffect(() => {
-    if (!USE_MOCKS) return
+    if (!MOCK_FEATURES) return
     return mockSubscribe(() => {
       void queryClient.invalidateQueries({ queryKey: ['typing', chatId] })
     })

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ApiError, USE_MOCKS, api } from '@/api'
+import { ApiError, IS_HYBRID, USE_MOCKS, api } from '@/api'
 import { API_BASE } from '@/api/http'
 import { mockReset } from '@/api/mock'
 import { cn } from '@/lib/cn'
@@ -141,25 +141,39 @@ export function SettingsPage() {
           <div
             className={cn(
               'flex items-start gap-3 rounded-2xl border px-4 py-3',
-              USE_MOCKS ? 'border-sun/50 bg-sun-soft' : 'border-mint/40 bg-mint-soft',
+              USE_MOCKS
+                ? 'border-sun/50 bg-sun-soft'
+                : IS_HYBRID
+                  ? 'border-sky/40 bg-sky-soft'
+                  : 'border-mint/40 bg-mint-soft',
             )}
           >
             <Icon
-              name={USE_MOCKS ? 'code' : 'check'}
+              name={USE_MOCKS ? 'code' : IS_HYBRID ? 'spark' : 'check'}
               size={18}
-              className={cn('mt-0.5 shrink-0', USE_MOCKS ? 'text-sun-deep' : 'text-mint-deep')}
+              className={cn(
+                'mt-0.5 shrink-0',
+                USE_MOCKS ? 'text-sun-deep' : IS_HYBRID ? 'text-sky-deep' : 'text-mint-deep',
+              )}
             />
             <div className="text-[13px]">
               <p className="font-display font-bold">
-                {USE_MOCKS ? 'Демо-режим: встроенные моки' : 'Живой API через BFF'}
+                {USE_MOCKS
+                  ? 'Демо-режим: встроенные моки'
+                  : IS_HYBRID
+                    ? 'Гибрид: живой BFF + моки'
+                    : 'Живой API через BFF'}
               </p>
               <p className="mt-0.5 text-ink/75">
                 {USE_MOCKS
                   ? 'Данные живут в localStorage браузера: свайпы, мэтчи, чаты и автоответы. Бэкенд не нужен.'
-                  : `Запросы идут на ${API_BASE} → BFF :8003. Лента и публичные анкеты в контракте пока не реализованы.`}
+                  : IS_HYBRID
+                    ? 'Аккаунт, анкета и уведомления — живой BFF. Лента, мэтчи и чаты пока на моках (бэкенд их ещё не реализовал).'
+                    : `Запросы идут на ${API_BASE} → BFF :8003. Лента и публичные анкеты в контракте пока не реализованы.`}
               </p>
               <p className="mt-1 font-mono text-[11px] text-dim">
-                VITE_USE_MOCKS={String(USE_MOCKS)} · VITE_API_BASE={API_BASE}
+                VITE_USE_MOCKS={USE_MOCKS ? 'true' : IS_HYBRID ? 'hybrid' : 'false'} ·
+                VITE_API_BASE={API_BASE}
               </p>
             </div>
           </div>
@@ -168,7 +182,7 @@ export function SettingsPage() {
             <Button variant="ghost" icon="image" onClick={exportProfile} disabled={!profile}>
               Выгрузить анкету (JSON)
             </Button>
-            {USE_MOCKS && (
+            {(USE_MOCKS || IS_HYBRID) && (
               <Button variant="sun" icon="refresh" onClick={() => setConfirmReset(true)}>
                 Сбросить демо-данные
               </Button>

@@ -35,6 +35,17 @@ export const mockTyping = new Set<string>()
 export const mockSubscribe = subscribe
 export const mockReset = resetDb
 
+/**
+ * В hybrid-режиме мок обслуживает ленту/мэтчи/чаты без своего логина,
+ * а real-JWT сессия не пишет db.sessionProfileId — подкладываем демо-профиль.
+ */
+export function ensureMockSession(): void {
+  if (!db.sessionProfileId) {
+    db.sessionProfileId = ME_ID
+    save()
+  }
+}
+
 function currentProfileId(): string {
   if (!db.sessionProfileId) throw new ApiError(401, 'Сессия истекла — войди заново')
   return db.sessionProfileId

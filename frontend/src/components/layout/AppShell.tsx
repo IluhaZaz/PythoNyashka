@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { USE_MOCKS } from '@/api'
+import { IS_HYBRID, USE_MOCKS } from '@/api'
 import { useChats, useMatchHistory, useMockSync } from '@/api/hooks'
-import { useAuth } from '@/state/auth'
+import { useAuth, useMyId } from '@/state/auth'
 import { useToast } from '@/state/toast'
 import { cn } from '@/lib/cn'
 import { mockReset } from '@/api/mock'
@@ -21,6 +21,7 @@ const NAV: { to: string; label: string; icon: IconName }[] = [
 export function AppShell() {
   useMockSync()
   const { profile, logout } = useAuth()
+  const myId = useMyId()
   const { push } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
@@ -34,7 +35,7 @@ export function AppShell() {
   const unreadChats = chats?.reduce((sum, chat) => sum + chat.unread, 0) ?? 0
   const pendingLikes =
     matches?.filter(
-      (match) => match.status === 'noResponse' && match.targetProfileId === profile?.id,
+      (match) => match.status === 'noResponse' && match.targetProfileId === myId,
     ).length ?? 0
 
   const counts: Record<string, number> = {
@@ -94,12 +95,16 @@ export function AppShell() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2 md:ml-0">
-            {USE_MOCKS && (
+            {(USE_MOCKS || IS_HYBRID) && (
               <span
                 className="mono-badge hidden lg:inline-flex"
-                title="Данные обслуживает встроенный мок, бэкенд не нужен"
+                title={
+                  USE_MOCKS
+                    ? 'Данные обслуживает встроенный мок, бэкенд не нужен'
+                    : 'Аккаунт и уведомления — живой BFF; лента, матчи и чаты — моки'
+                }
               >
-                demo · mocks on
+                {USE_MOCKS ? 'demo · mocks on' : 'hybrid · BFF + mocks'}
               </span>
             )}
             <NotificationBell />
@@ -145,7 +150,7 @@ export function AppShell() {
                       {item.label}
                     </Link>
                   ))}
-                  {USE_MOCKS && (
+                  {(USE_MOCKS || IS_HYBRID) && (
                     <button
                       type="button"
                       onClick={handleReset}

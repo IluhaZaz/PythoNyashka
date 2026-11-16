@@ -7,7 +7,7 @@ import { keys, useAnswerMatch, useChats, useMatchHistory } from '@/api/hooks'
 import { avatarGradient } from '@/lib/avatar'
 import { cn } from '@/lib/cn'
 import { plural, timeAgo } from '@/lib/format'
-import { useAuth } from '@/state/auth'
+import { useAuth, useMyId } from '@/state/auth'
 import { useToast } from '@/state/toast'
 import { Avatar, MediaImage } from '@/components/MediaImage'
 import { PersonModal } from '@/components/PersonModal'
@@ -30,7 +30,7 @@ export function MatchesPage() {
   const [opened, setOpened] = useState<PublicProfile | null>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
 
-  const meId = profile?.id ?? ''
+  const meId = useMyId()
   const rows = history.data ?? []
 
   const otherId = (match: Match) =>

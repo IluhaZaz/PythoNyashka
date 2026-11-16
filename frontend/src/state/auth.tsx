@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ApiError, USE_MOCKS, api, tokenStore } from '@/api'
+import { ApiError, MODE, USE_MOCKS, api, tokenStore } from '@/api'
 import type { Profile, ProfileCreateInput } from '@/api/types'
 import { readJson, writeJson } from '@/lib/storage'
-import { DEMO_EMAIL } from '@/api/mock/seed'
+import { DEMO_EMAIL, ME_ID } from '@/api/mock/seed'
 import { startAmbient } from '@/api/mock'
 
 const DEMO_PASSWORD_VALUE = 'nyashka123'
@@ -131,4 +131,13 @@ export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext)
   if (!context) throw new Error('useAuth должен вызываться внутри AuthProvider')
   return context
+}
+
+/**
+ * В hybrid профиль живёт на BFF (реальный uuid), а мок-данные (мэтчи/чаты)
+ * ключуются по сидированному ME_ID — сравнения «моё/чужое» берут его.
+ */
+export function useMyId(): string {
+  const { profile } = useAuth()
+  return MODE === 'hybrid' ? ME_ID : (profile?.id ?? '')
 }

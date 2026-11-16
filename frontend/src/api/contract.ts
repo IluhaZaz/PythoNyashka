@@ -14,8 +14,10 @@ import type {
   SwipeResult,
 } from './types'
 
+export type ApiMode = 'mock' | 'live' | 'hybrid'
+
 export interface NyashkaApi {
-  readonly mode: 'mock' | 'live'
+  readonly mode: ApiMode
 
   login(email: string, password: string): Promise<AuthTokens>
   register(input: ProfileCreateInput): Promise<{ id: string }>

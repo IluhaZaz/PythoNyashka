@@ -13,7 +13,7 @@ import {
 } from '@/api/hooks'
 import { cn } from '@/lib/cn'
 import { clockTime, dayLabel, shortAgo, timeAgo } from '@/lib/format'
-import { useAuth } from '@/state/auth'
+import { useAuth, useMyId } from '@/state/auth'
 import { useToast } from '@/state/toast'
 import { Avatar, MediaImage } from '@/components/MediaImage'
 import { PersonModal } from '@/components/PersonModal'
@@ -170,7 +170,7 @@ export function ChatsPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
 
-  const meId = profile?.id ?? ''
+  const meId = useMyId()
   const list = chats.data ?? []
   const active = list.find((chat) => chat.id === chatId) ?? null
   const contact = active?.contact ?? null

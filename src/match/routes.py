@@ -1,4 +1,3 @@
-import logging
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse, Response
 
@@ -12,21 +11,18 @@ from src.match.usecase import (
     RejectMatch,
 )
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/matches", tags=["Matches"])
 
 
-@router.get("", status_code=200)
+@router.get("", response_model=MatchGet)
 async def get_match(
     profile_id: str = Query(..., description="Acting profile ID set by the BFF"),
     usecase: GetNextMatch = Depends(dependencies.get_next_match_uc),
-) -> MatchGet:
+) -> MatchGet | JSONResponse:
     try:
-        match = await usecase.execute(profile_id)
+        return await usecase.execute(profile_id)
     except MatchNotFoundError:
         return JSONResponse(status_code=404, content={"error": "No matches available"})
-    return match
 
 
 @router.get("/history", status_code=200)

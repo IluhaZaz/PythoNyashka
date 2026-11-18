@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from http import HTTPStatus
 from typing import Annotated
 from uuid import UUID
 
@@ -9,12 +10,14 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from generated.clients.auth.client import AuthenticatedClient, Client
 from generated.clients.chat.client import Client as ChatClient
+from generated.clients.match.client import Client as MatchClient
 from generated.clients.media.client import Client as MediaClient
 from generated.clients.notification.client import Client as NotificationClient
 from generated.clients.profile.client import Client as ProfileClient
 from src.bff.config import (
     AuthClientConfig,
     ChatClientConfig,
+    MatchClientConfig,
     MediaClientConfig,
     NotificationClientConfig,
     ProfileClientConfig,
@@ -22,6 +25,7 @@ from src.bff.config import (
 )
 from src.bff.security import AccessTokenVerifier
 from src.bff.usecase import (
+    APIRequestError,
     ChangePassword,
     Chats,
     CreateProfile,
@@ -30,6 +34,7 @@ from src.bff.usecase import (
     GetProfile,
     Login,
     Logout,
+    Matches,
     ReadNotification,
     Refresh,
     UpdateProfile,
@@ -217,3 +222,22 @@ def chats_uc(
     media_client: Annotated[MediaClient, Depends(get_media_client)],
 ) -> Chats:
     return Chats(profile_id=profile_id, client=client, media_client=media_client)
+
+
+async def get_match_client() -> AsyncIterator[MatchClient]:
+    config = MatchClientConfig()
+    async with MatchClient(
+        base_url=config.base_url,
+        timeout=httpx.Timeout(config.timeout_seconds),
+    ) as client:
+        try:
+            yield client
+        except httpx.RequestError as exc:
+            raise APIRequestError(HTTPStatus.BAD_GATEWAY, "Match Service unavailable") from exc
+
+
+def matches_uc(
+    profile_id: Annotated[UUID | None, Depends(get_current_profile_id)],
+    client: Annotated[MatchClient, Depends(get_match_client)],
+) -> Matches:
+    return Matches(profile_id=profile_id, client=client)

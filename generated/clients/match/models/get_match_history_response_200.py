@@ -5,11 +5,12 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
+from typing_extensions import Self
 
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.match_get import MatchGet
+    from ..models.match_history_item import MatchHistoryItem
 
 
 T = TypeVar("T", bound="GetMatchHistoryResponse200")
@@ -19,10 +20,10 @@ T = TypeVar("T", bound="GetMatchHistoryResponse200")
 class GetMatchHistoryResponse200:
     """
     Attributes:
-        matches (list[MatchGet] | Unset):
+        matches (list[MatchHistoryItem] | Unset):
     """
 
-    matches: list[MatchGet] | Unset = UNSET
+    matches: list[MatchHistoryItem] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -42,16 +43,16 @@ class GetMatchHistoryResponse200:
         return field_dict
 
     @classmethod
-    def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.match_get import MatchGet  # noqa: PLC0415
+    def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        from ..models.match_history_item import MatchHistoryItem
 
         d = dict(src_dict)
         _matches = d.pop("matches", UNSET)
-        matches: list[MatchGet] | Unset = UNSET
+        matches: list[MatchHistoryItem] | Unset = UNSET
         if _matches is not UNSET:
             matches = []
             for matches_item_data in _matches:
-                matches_item = MatchGet.from_dict(matches_item_data)
+                matches_item = MatchHistoryItem.from_dict(matches_item_data)
 
                 matches.append(matches_item)
 

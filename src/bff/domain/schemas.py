@@ -43,6 +43,28 @@ class ErrorResponse(BaseModel):
     error: str
 
 
+MatchSwipe = Literal["like", "dislike"]
+
+
+class MatchGet(BaseModel):
+    id: UUID
+    initiator_profile_id: UUID = Field(alias="initiatorProfileId")
+    target_profile_id: UUID = Field(alias="targetProfileId")
+    status: Literal["noResponse", "accepted", "rejected"]
+    created_at: datetime = Field(alias="createdAt")
+
+
+class MatchHistoryItem(MatchGet):
+    my_swipe: MatchSwipe | None = Field(
+        alias="mySwipe",
+        description="The viewer's own swipe, or null if they have not swiped.",
+    )
+
+
+class MatchesGetResponse(BaseModel):
+    matches: list[MatchHistoryItem]
+
+
 class NotificationGet(BaseModel):
     model_config = ConfigDict(strict=True)
 

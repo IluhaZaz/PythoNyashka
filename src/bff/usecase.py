@@ -30,6 +30,13 @@ from generated.clients.chat.models.get_chat_messages_response_200 import GetChat
 from generated.clients.chat.models.get_chats_response_200 import GetChatsResponse200
 from generated.clients.chat.models.message_create import MessageCreate as ClientMessageCreate
 from generated.clients.chat.types import UNSET, Unset
+from generated.clients.match.api.matches import (
+    accept_match,
+    get_match,
+    get_match_history,
+    reject_match,
+)
+from generated.clients.match.client import Client as MatchClient
 from generated.clients.media.api.media import get_media_by_id, upload_media
 from generated.clients.media.client import Client as MediaClient
 from generated.clients.media.models.error import Error as MediaClientError
@@ -66,6 +73,9 @@ from src.bff.domain.schemas import (
     ChatsResponse,
     ErrorResponse,
     LoginRequest,
+    MatchGet,
+    MatchesGetResponse,
+    MatchSwipe,
     MessageCreate,
     MessageGet,
     NotificationsGetResponse,
@@ -443,11 +453,17 @@ async def _upload_media(file: UploadFile, client: MediaClient) -> UUID:
     return response.parsed.id
 
 
-class ChatRequestError(Exception):
+class APIRequestError(Exception):
     def __init__(self, status_code: HTTPStatus, error: str) -> None:
         self.status_code = status_code
         self.error = error
         super().__init__(error)
+
+
+def _require_profile_id(profile_id: UUID | None) -> UUID:
+    if profile_id is None:
+        raise APIRequestError(HTTPStatus.UNAUTHORIZED, "Невалидный access-токен")
+    return profile_id
 
 
 class Chats:
@@ -458,13 +474,8 @@ class Chats:
         self.client = client
         self.media_client = media_client
 
-    def _require_profile_id(self) -> UUID:
-        if self.profile_id is None:
-            raise ChatRequestError(HTTPStatus.UNAUTHORIZED, "Невалидный access-токен")
-        return self.profile_id
-
     async def create(self, req: ChatCreate) -> ChatCreatedResponse:
-        profile_id = self._require_profile_id()
+        profile_id = _require_profile_id(self.profile_id)
         contact_ids = list(dict.fromkeys([profile_id, *req.contact_ids]))
         response = await create_chat.asyncio_detailed(
             client=self.client, body=ClientChatCreate(contact_ids=contact_ids),
@@ -477,7 +488,7 @@ class Chats:
 
     async def list(self) -> ChatsResponse:
         response = await get_chats.asyncio_detailed(
-            client=self.client, profile_id=self._require_profile_id(),
+            client=self.client, profile_id=_require_profile_id(self.profile_id),
         )
         if response.status_code == HTTPStatus.OK and isinstance(
             response.parsed, GetChatsResponse200,
@@ -488,10 +499,10 @@ class Chats:
 
     async def _require_member(self, chat_id: UUID) -> None:
         if chat_id not in (await self.list()).chat_ids:
-            raise ChatRequestError(HTTPStatus.NOT_FOUND, "Chat not found")
+            raise APIRequestError(HTTPStatus.NOT_FOUND, "Chat not found")
 
     async def send(self, chat_id: UUID, req: MessageCreate) -> None:
-        sender_id = self._require_profile_id()
+        sender_id = _require_profile_id(self.profile_id)
         await self._require_member(chat_id)
 
         media_ids: list[UUID] = []
@@ -499,7 +510,7 @@ class Chats:
             try:
                 media_ids.append(await _upload_media(file, self.media_client))
             except MediaUploadError as exc:
-                raise ChatRequestError(exc.status_code, exc.error) from exc
+                raise APIRequestError(exc.status_code, exc.error) from exc
 
         response = await send_message.asyncio_detailed(
             chat_id,
@@ -543,5 +554,45 @@ class Chats:
     def _raise_response_error(status_code: HTTPStatus, content: bytes) -> NoReturn:
         if status_code == HTTPStatus.NOT_FOUND:
             error = ErrorResponse.model_validate_json(content)
-            raise ChatRequestError(status_code, error.error)
+            raise APIRequestError(status_code, error.error)
         raise RuntimeError(f"Unexpected Chat Service response: {status_code}")
+
+
+class Matches:
+    def __init__(self, profile_id: UUID | None, client: MatchClient) -> None:
+        self.profile_id = profile_id
+        self.client = client
+
+    async def get_next(self) -> MatchGet:
+        response = await get_match.asyncio_detailed(
+            client=self.client, profile_id=_require_profile_id(self.profile_id),
+        )
+        if response.parsed is not None:
+            return MatchGet.model_validate(response.parsed.to_dict())
+        self._raise_response_error(response.status_code, response.content)
+
+    async def history(self, offset: int, limit: int) -> MatchesGetResponse:
+        response = await get_match_history.asyncio_detailed(
+            client=self.client,
+            profile_id=_require_profile_id(self.profile_id),
+            offset=offset,
+            limit=limit,
+        )
+        if response.parsed is not None:
+            return MatchesGetResponse.model_validate(response.parsed.to_dict())
+        self._raise_response_error(response.status_code, response.content)
+
+    async def swipe(self, match_id: UUID, answer: MatchSwipe) -> None:
+        operation = accept_match if answer == "like" else reject_match
+        response = await operation.asyncio_detailed(
+            match_id, client=self.client, profile_id=_require_profile_id(self.profile_id),
+        )
+        if response.status_code != HTTPStatus.NO_CONTENT:
+            self._raise_response_error(response.status_code, response.content)
+
+    @staticmethod
+    def _raise_response_error(status_code: HTTPStatus, content: bytes) -> NoReturn:
+        if status_code == HTTPStatus.NOT_FOUND:
+            error = ErrorResponse.model_validate_json(content)
+            raise APIRequestError(status_code, error.error)
+        raise APIRequestError(HTTPStatus.BAD_GATEWAY, "Unexpected Match Service response")

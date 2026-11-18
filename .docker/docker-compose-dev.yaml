@@ -215,6 +215,8 @@ services:
       - "8003:8000"
     env_file:
       - .env
+    environment:
+      BFF_MATCH_BASE_URL: ${BFF_MATCH_BASE_URL:-http://match:8000}
     volumes:
       - ../src/bff:/app/src/bff
       - ../generated/clients/auth:/app/generated/clients/auth

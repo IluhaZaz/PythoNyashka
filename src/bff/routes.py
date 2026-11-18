@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi import APIRouter, Body, Depends, Form, Query, Request
 from fastapi.responses import JSONResponse, Response
 
 from src.bff import dependencies
@@ -14,6 +14,9 @@ from src.bff.domain.schemas import (
     ChatsResponse,
     ErrorResponse,
     LoginRequest,
+    MatchGet,
+    MatchesGetResponse,
+    MatchSwipe,
     MessageCreate,
     NotificationsGetResponse,
     ProfileCreate,
@@ -33,6 +36,7 @@ from src.bff.usecase import (
     InvalidOldPasswordError,
     Login,
     Logout,
+    Matches,
     MediaNotFoundError,
     NotificationNotFoundError,
     ProfileAlreadyExistsError,
@@ -51,6 +55,41 @@ chats_router = APIRouter(
     tags=["Chats"],
     responses={401: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
 )
+matches_router = APIRouter(
+    prefix="/matches",
+    tags=["Matches"],
+    responses={401: {"model": ErrorResponse}, 502: {"model": ErrorResponse}},
+)
+
+
+@matches_router.get("", operation_id="getMatch", responses={404: {"model": ErrorResponse}})
+async def get_match(usecase: Annotated[Matches, Depends(dependencies.matches_uc)]) -> MatchGet:
+    return await usecase.get_next()
+
+
+@matches_router.get("/history", operation_id="getMatchHistory")
+async def get_match_history(
+    usecase: Annotated[Matches, Depends(dependencies.matches_uc)],
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 10,
+) -> MatchesGetResponse:
+    return await usecase.history(offset, limit)
+
+
+@matches_router.post(
+    "/{match_id}/swipe",
+    operation_id="answerMatch",
+    status_code=204,
+    response_class=Response,
+    responses={404: {"model": ErrorResponse}},
+)
+async def answer_match(
+    match_id: UUID,
+    answer: Annotated[MatchSwipe, Body()],
+    usecase: Annotated[Matches, Depends(dependencies.matches_uc)],
+) -> Response:
+    await usecase.swipe(match_id, answer)
+    return Response(status_code=204)
 
 
 @notifications_router.get(

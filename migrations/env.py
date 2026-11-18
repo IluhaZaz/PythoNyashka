@@ -12,6 +12,7 @@ from src.chat.infrastructure.storage.postgresql.models import Chat, ChatMember, 
 from src.profile.infrastructure.storage.postgresql.models import Profile
 from src.media.infrastructure.storage.postgresql.models import MediaFile
 from src.notification.infrastructure.storage.postgresql.models import Notification
+from src.match.infrastructure.storage.postgresql.models import Match
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

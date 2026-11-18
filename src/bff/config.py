@@ -41,3 +41,10 @@ class ChatClientConfig(BaseSettings):
     timeout_seconds: float = Field(default=10.0, gt=0)
 
     model_config = SettingsConfigDict(env_prefix="bff_chat_")
+
+
+class MatchClientConfig(BaseSettings):
+    base_url: str = "http://localhost:8006"
+    timeout_seconds: float = Field(default=10.0, gt=0)
+
+    model_config = SettingsConfigDict(env_prefix="bff_match_")

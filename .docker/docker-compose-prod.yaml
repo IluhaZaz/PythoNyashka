@@ -163,6 +163,19 @@ services:
       migrations:
         condition: service_completed_successfully
 
+  match:
+    build:
+      context: ..
+      dockerfile: .docker/DockerfileMatch
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    networks:
+      - backend
+
   bff:
     build:
       context: ..
@@ -173,6 +186,8 @@ services:
       - "8003:8000"
     env_file:
       - .env
+    environment:
+      BFF_MATCH_BASE_URL: ${BFF_MATCH_BASE_URL:-http://match:8000}
     networks:
       - public
       - backend
@@ -182,6 +197,7 @@ services:
       - media
       - notification
       - chat
+      - match
 
 volumes:
   postgres_data:

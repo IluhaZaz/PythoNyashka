@@ -13,7 +13,7 @@ export default defineConfig({
     proxy: {
       // Бэкенд не отдаёт CORS-заголовки, поэтому браузер ходит только через этот прокси.
       '/api': {
-        target: 'http://localhost:8003',
+        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:8003',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },

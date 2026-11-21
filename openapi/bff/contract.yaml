@@ -147,6 +147,7 @@ paths:
   /chats:
     post:
       summary: Create a new chat
+      description: BFF includes the authenticated profile among the chat participants.
       operationId: createChat
       tags:
         - Chats
@@ -180,6 +181,7 @@ paths:
   /chats/{chat_id}/message:
     post:
       summary: Send message
+      description: Only chat participants can send messages. BFF takes the sender ID from the access JWT.
       operationId: sendMessage
       tags:
         - Chats
@@ -203,10 +205,29 @@ paths:
           description: OK
         '404':
           $ref: '#/components/responses/EntityNotFoundResponse'
+        '400':
+          description: Missing or malformed attachment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: Attachment exceeds the size limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Unsupported attachment type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /chats/{chat_id}/messages:
     get:
       summary: Get chat messages
+      description: Only chat participants can read the history.
       operationId: getChatMessages
       tags:
         - Chats
@@ -270,6 +291,7 @@ paths:
     get:
       summary: Get match
       operationId: getMatch
+      description: Issue an unseen profile on every call, prioritizing incoming likes.
       tags:
       - Matches
       responses:
@@ -277,11 +299,16 @@ paths:
           $ref: '#/components/responses/UnauthorizedResponse'
         '200':
           $ref: '#/components/responses/MatchGetResponse'
+        '404':
+          $ref: '#/components/responses/MatchNotFoundResponse'
+        '502':
+          $ref: '#/components/responses/MatchServiceUnavailableResponse'
 
   /matches/history:
     get:
       summary: Get matches history
       operationId: getMatchHistory
+      description: Return the current profile's issued cards and pair outcomes.
       tags:
       - Matches
       parameters:
@@ -289,20 +316,35 @@ paths:
           in: query
           schema:
             type: integer
+            minimum: 0
+            default: 0
         - name: limit
           in: query
           schema:
             type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
       responses:
         '401':
           $ref: '#/components/responses/UnauthorizedResponse'
         '200':
           $ref: '#/components/responses/MatchesGetResponse'
+        '502':
+          $ref: '#/components/responses/MatchServiceUnavailableResponse'
 
   /matches/{match_id}/swipe:
     post:
       summary: Answer match
       operationId: answerMatch
+      description: Record the current profile's swipe on their own card.
+      parameters:
+        - name: match_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       requestBody:
         required: true
         content:
@@ -317,6 +359,10 @@ paths:
           $ref: '#/components/responses/UnauthorizedResponse'
         '204':
           description: OK
+        '404':
+          $ref: '#/components/responses/MatchNotFoundResponse'
+        '502':
+          $ref: '#/components/responses/MatchServiceUnavailableResponse'
 
   /notifications:
     get:
@@ -667,6 +713,7 @@ components:
 
     MatchGet:
       type: object
+      required: [id, initiatorProfileId, targetProfileId, status, createdAt]
       properties:
         id:
           type: string
@@ -680,9 +727,31 @@ components:
         status:
           type: string
           enum: ['noResponse', 'accepted', 'rejected']
+          description: >
+            noResponse means the viewer has not swiped or is waiting for a reply.
+            accepted requires two likes. rejected means the viewer has swiped and at least
+            one profile disliked the pair.
         createdAt:
           type: string
-          format: datetime
+          format: date-time
+
+    MatchSwipe:
+      type: string
+      enum: [like, dislike]
+
+    MatchHistoryItem:
+      allOf:
+        - $ref: '#/components/schemas/MatchGet'
+        - type: object
+          required: [mySwipe]
+          properties:
+            mySwipe:
+              anyOf:
+                - $ref: '#/components/schemas/MatchSwipe'
+                - type: string
+                  nullable: true
+                  enum: [null]
+              description: The viewer's own swipe, or null if they have not swiped.
 
   responses:
     ProfileGetResponse:
@@ -804,11 +873,34 @@ components:
         application/json:
           schema:
             type: object
+            required: [matches]
             properties:
               matches:
                 type: array
                 items:
-                  $ref: '#/components/schemas/MatchGet'
+                  $ref: '#/components/schemas/MatchHistoryItem'
+
+    MatchNotFoundResponse:
+      description: No candidate is available or the match does not belong to the current profile.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: string
+
+    MatchServiceUnavailableResponse:
+      description: Match Service could not fulfill the request.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: string
 
     NotificationsGetResponse:
       description: Notifications ordered by created_at descending, then id descending. Applies offset and limit; returns an empty list if no notifications remain.

@@ -5,12 +5,16 @@ import type {
   AuthTokens,
   ChatMessages,
   ChatSummary,
+  FeedFilters,
+  FeedPage,
   Match,
   NotificationItem,
   Profile,
   ProfileCreateInput,
   ProfileUpdateInput,
+  PublicProfile,
   SwipeDecision,
+  SwipeResult,
 } from './types'
 
 function profileForm(input: ProfileCreateInput | ProfileUpdateInput): FormData {
@@ -31,6 +35,50 @@ function profileForm(input: ProfileCreateInput | ProfileUpdateInput): FormData {
 
 const notImplemented = (what: string) =>
   new ApiError(501, `${what} ещё не реализован в BFF — включи VITE_USE_MOCKS=true`)
+
+// GET /matches выдаёт следующую анкету записью Match (id + targetProfileId).
+// Между feed() и swipe() держим соответствие target -> matchId: BFF принимает
+// свайп именно по id мэтча, а лента оперирует id анкеты.
+const matchByTarget = new Map<string, string>()
+
+function matchToCandidate(match: Match): PublicProfile {
+  return {
+    id: match.targetProfileId,
+    name: 'Анкета',
+    surname: '',
+    age: 0,
+    gender: 'female',
+    bio: 'Имя и фото появятся, когда BFF начнёт отдавать чужие анкеты (пока нет GET /profiles/{id}).',
+    tags: [],
+    role: 'профиль скрыт контрактом',
+    city: '',
+    distanceKm: 0,
+    online: false,
+    lastSeen: '',
+    matchScore: 0,
+    avatar: null,
+    prompts: [],
+    lookingFor: '',
+  }
+}
+
+async function nextCandidate(): Promise<FeedPage> {
+  const match = await request<Match>('/matches').catch((error: unknown) => {
+    if (error instanceof ApiError && error.status === 404) return null
+    throw error
+  })
+  if (!match) return { candidates: [], total: 0, remaining: 0 }
+  matchByTarget.set(match.targetProfileId, match.id)
+  return { candidates: [matchToCandidate(match)], total: 1, remaining: 1 }
+}
+
+async function swipeCandidate(profileId: string, decision: SwipeDecision): Promise<SwipeResult> {
+  const matchId = matchByTarget.get(profileId)
+  if (!matchId) throw new ApiError(404, 'Мэтч не найден — обнови ленту')
+  await request<void>(`/matches/${matchId}/swipe`, { method: 'POST', json: decision })
+  matchByTarget.delete(profileId)
+  return { decision, matched: false, match: null, chatId: null }
+}
 
 export const liveApi: NyashkaApi = {
   mode: 'live',
@@ -96,12 +144,12 @@ export const liveApi: NyashkaApi = {
     return request<void>(`/notifications/${id}/read`, { method: 'POST' })
   },
 
-  feed() {
-    return Promise.reject(notImplemented('Эндпоинт ленты'))
+  feed(_filters: FeedFilters) {
+    return nextCandidate()
   },
 
-  swipe() {
-    return Promise.reject(notImplemented('Свайп по анкете'))
+  swipe(profileId, decision) {
+    return swipeCandidate(profileId, decision)
   },
 
   undoSwipe() {
@@ -145,8 +193,12 @@ export const liveApi: NyashkaApi = {
     return request<{ id: string }>('/chats', { method: 'POST', json: { contactIds } })
   },
 
-  messages(chatId, limit, offset) {
-    return request<ChatMessages>(`/chats/${chatId}/messages?limit=${limit}&offset=${offset}`)
+  async messages(chatId, limit, offset) {
+    const data = await request<ChatMessages>(
+      `/chats/${chatId}/messages?limit=${limit}&offset=${offset}`,
+    )
+    // Chat Service возвращает от новых к старым; UI рисует сверху вниз.
+    return { chatId: data.chatId, messages: [...data.messages].reverse() }
   },
 
   sendMessage(chatId, text, media) {

@@ -195,3 +195,4 @@ components:
                 type: string
                 example: "Chat not found"
 
+#poetry run openapi-python-client generate --path openapi/chat/contract.yaml --meta none --overwrite --output-path generated/clients/chat

@@ -8,9 +8,11 @@ from alembic import context
 from src.infrastructure.storage.postgresql.config import DBConfig
 from src.infrastructure.storage.postgresql.models import Base
 from src.auth.infrastructure.storage.postgresql.models import User
+from src.chat.infrastructure.storage.postgresql.models import Chat, ChatMember, Message
 from src.profile.infrastructure.storage.postgresql.models import Profile
 from src.media.infrastructure.storage.postgresql.models import MediaFile
 from src.notification.infrastructure.storage.postgresql.models import Notification
+from src.match.infrastructure.storage.postgresql.models import Match
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

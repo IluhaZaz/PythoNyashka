@@ -1,9 +1,9 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import UploadFile
-from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, WithJsonSchema
 
 from src.bff.domain.tags import ProfileTag
 
@@ -41,6 +41,28 @@ class ErrorResponse(BaseModel):
     model_config = ConfigDict(strict=True)
 
     error: str
+
+
+MatchSwipe = Literal["like", "dislike"]
+
+
+class MatchGet(BaseModel):
+    id: UUID
+    initiator_profile_id: UUID = Field(alias="initiatorProfileId")
+    target_profile_id: UUID = Field(alias="targetProfileId")
+    status: Literal["noResponse", "accepted", "rejected"]
+    created_at: datetime = Field(alias="createdAt")
+
+
+class MatchHistoryItem(MatchGet):
+    my_swipe: MatchSwipe | None = Field(
+        alias="mySwipe",
+        description="The viewer's own swipe, or null if they have not swiped.",
+    )
+
+
+class MatchesGetResponse(BaseModel):
+    matches: list[MatchHistoryItem]
 
 
 class NotificationGet(BaseModel):
@@ -115,3 +137,40 @@ class ProfileUpdate(BaseModel):
     gender: Literal["male", "female"] | None = None
     tags: list[ProfileTag] | None = None
     avatar: UploadFile | None = None
+
+
+class ChatCreate(BaseModel):
+    contact_ids: list[UUID] = Field(alias="contactIds")
+
+
+class ChatCreatedResponse(BaseModel):
+    id: UUID
+
+
+class ChatsResponse(BaseModel):
+    chat_ids: list[UUID] = Field(serialization_alias="chatIds")
+
+
+class MessageCreate(BaseModel):
+    text: str
+    # Swagger UI uses format: binary to render a file picker for each array item.
+    media: list[Annotated[
+        UploadFile,
+        WithJsonSchema({"type": "string", "format": "binary"}, mode="validation"),
+    ]] = Field(
+        default_factory=list,
+        description="Optional attachments. Add one file per item.",
+    )
+
+
+class MessageGet(BaseModel):
+    id: UUID
+    sender_id: UUID = Field(serialization_alias="senderId")
+    text: str
+    media: list[str]
+    sent_at: datetime | None = Field(default=None, serialization_alias="sentAt")
+
+
+class ChatMessagesResponse(BaseModel):
+    chat_id: UUID = Field(serialization_alias="chatId")
+    messages: list[MessageGet]

@@ -22,7 +22,7 @@ paths:
         schema:
           type: string
           format: uuid
-      description: Get the next match for profile_id.
+      description: Issue an unseen profile on every call, prioritizing incoming likes.
   /matches/history:
     get:
       summary: Get matches history
@@ -48,7 +48,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MatchesGetResponse'
-      description: Get the match history for profile_id (initiatorProfileId).
+      description: Return profiles issued to profile_id and the current outcome of each pair.
   /matches/{match_id}/like:
     post:
       summary: Accept match
@@ -72,7 +72,7 @@ paths:
         schema:
           type: string
           format: uuid
-      description: Apply the response to the match belonging to profile_id (initiatorProfileId).
+      description: Record profile_id's like on their own card. A match is accepted after both profiles like each other.
   /matches/{match_id}/dislike:
     post:
       summary: Reject match
@@ -96,7 +96,7 @@ paths:
         schema:
           type: string
           format: uuid
-      description: Apply the response to the match belonging to profile_id (initiatorProfileId).
+      description: Record profile_id's dislike on their own card.
 components:
   schemas:
     MatchGet:
@@ -114,9 +114,29 @@ components:
         status:
           type: string
           enum: ['noResponse', 'accepted', 'rejected']
+          description: >
+            noResponse means the viewer has not swiped or is waiting for a reply.
+            accepted requires two likes. rejected means the viewer has swiped and at least
+            one profile disliked the pair.
         createdAt:
           type: string
           format: date-time
+    MatchSwipe:
+      type: string
+      enum: [like, dislike]
+    MatchHistoryItem:
+      allOf:
+        - $ref: '#/components/schemas/MatchGet'
+        - type: object
+          required: [mySwipe]
+          properties:
+            mySwipe:
+              anyOf:
+                - $ref: '#/components/schemas/MatchSwipe'
+                - type: string
+                  nullable: true
+                  enum: [null]
+              description: The viewer's own swipe, or null if they have not swiped.
   responses:
     MatchGetResponse:
       description: got match
@@ -134,4 +154,6 @@ components:
               matches:
                 type: array
                 items:
-                  $ref: '#/components/schemas/MatchGet'
+                  $ref: '#/components/schemas/MatchHistoryItem'
+
+#poetry run openapi-python-client generate --path openapi/match/contract.yaml --meta none --overwrite --output-path generated/clients/match

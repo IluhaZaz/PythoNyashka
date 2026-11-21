@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(grep -n \"MatchGet\\\\|ChatGet\\\\|MessageGet\\\\|SwipeRequest\\\\|swipe\\\\|matches\\\\|chats\" openapi/bff/contract.yaml | head -80)"
-    ]
-  }
-}

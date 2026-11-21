@@ -264,7 +264,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_USE_MOCKS=${VITE_USE_MOCKS:-hybrid} 
+      - VITE_USE_MOCKS=${VITE_USE_MOCKS:-false}
       - VITE_PROXY_TARGET=http://bff:8000
     volumes:
       - ../frontend:/app

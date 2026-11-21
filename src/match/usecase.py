@@ -14,6 +14,10 @@ class GetNextMatch:
         if not await self.repository.lock_profile(profile_id):
             raise MatchNotFoundError("Profile not found")
 
+        pending = await self.repository.get_pending_match(profile_id)
+        if pending is not None:
+            return pending
+
         target_profile_id = await self.repository.find_candidate(profile_id)
         if target_profile_id is None:
             raise MatchNotFoundError("No more profiles available for matching")

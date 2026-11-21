@@ -109,6 +109,8 @@ export function useMessages(chatId: string | null) {
     queryKey: keys.messages(chatId ?? 'none'),
     queryFn: () => api.messages(chatId!, 200, 0),
     enabled: Boolean(chatId),
+    refetchInterval: MOCK_FEATURES ? false : 3_000,
+    refetchOnWindowFocus: MOCK_FEATURES ? false : 'always',
   })
 }
 

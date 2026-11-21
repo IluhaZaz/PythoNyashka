@@ -41,22 +41,23 @@ const notImplemented = (what: string) =>
 // свайп именно по id мэтча, а лента оперирует id анкеты.
 const matchByTarget = new Map<string, string>()
 
-function matchToCandidate(match: Match): PublicProfile {
+type PublicProfileData = Pick<Profile, 'id' | 'name' | 'surname' | 'age' | 'gender' | 'bio' | 'tags' | 'avatar'>
+
+async function getPublicProfile(profileId: string): Promise<PublicProfile | null> {
+  const data = await request<{ profile: PublicProfileData }>(`/profiles/${profileId}/public`).catch((error: unknown) => {
+    if (error instanceof ApiError && error.status === 404) return null
+    throw error
+  })
+  if (!data) return null
   return {
-    id: match.targetProfileId,
-    name: 'Анкета',
-    surname: '',
-    age: 0,
-    gender: 'female',
-    bio: 'Имя и фото появятся, когда BFF начнёт отдавать чужие анкеты (пока нет GET /profiles/{id}).',
-    tags: [],
-    role: 'профиль скрыт контрактом',
+    ...data.profile,
+    role: '',
     city: '',
     distanceKm: 0,
     online: false,
     lastSeen: '',
     matchScore: 0,
-    avatar: null,
+    avatar: data.profile.avatar ?? null,
     prompts: [],
     lookingFor: '',
   }
@@ -67,9 +68,10 @@ async function nextCandidate(): Promise<FeedPage> {
     if (error instanceof ApiError && error.status === 404) return null
     throw error
   })
-  if (!match) return { candidates: [], total: 0, remaining: 0 }
-  matchByTarget.set(match.targetProfileId, match.id)
-  return { candidates: [matchToCandidate(match)], total: 1, remaining: 1 }
+  const person = match ? await getPublicProfile(match.targetProfileId) : null
+  if (!match || !person) return { candidates: [], total: 0, remaining: 0 }
+  matchByTarget.set(person.id, match.id)
+  return { candidates: [person], total: 1, remaining: 1 }
 }
 
 async function swipeCandidate(profileId: string, decision: SwipeDecision): Promise<SwipeResult> {
@@ -156,9 +158,7 @@ export const liveApi: NyashkaApi = {
     return Promise.reject(notImplemented('Отмена свайпа'))
   },
 
-  publicProfile() {
-    return Promise.resolve(null)
-  },
+  publicProfile: getPublicProfile,
 
   currentMatch() {
     return request<Match>('/matches').catch((error: unknown) => {
@@ -179,10 +179,14 @@ export const liveApi: NyashkaApi = {
   },
 
   async chats() {
-    const data = await request<{ chatIds: string[] }>('/chats')
-    // Контракт отдаёт только id: участников и превью пока неоткуда взять.
+    const data = await request<{
+      chatIds: string[]
+      chats?: { id: string; contactId: string | null }[]
+    }>('/chats')
+    const contacts = new Map(data.chats?.map(({ id, contactId }) => [id, contactId]))
     return (data.chatIds ?? []).map<ChatSummary>((id) => ({
       id,
+      contactId: contacts.get(id) ?? null,
       contact: null,
       lastMessage: null,
       unread: 0,

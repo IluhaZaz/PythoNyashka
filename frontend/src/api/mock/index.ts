@@ -402,6 +402,7 @@ export const mockApi: NyashkaApi = {
     return db.chats
       .map<ChatSummary>((chat) => ({
         id: chat.id,
+        contactId: chat.contactId,
         contact: personById(chat.contactId),
         lastMessage: chat.messages.at(-1) ?? null,
         unread: chat.unread,

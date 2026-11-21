@@ -49,10 +49,9 @@ async def get_chats(
     usecase: Annotated[GetChats, Depends(dependencies.get_chats_uc)],
 ) -> ChatsResponse | Response:
     try:
-        chat_ids = await usecase.execute(str(profile_id))
+        return await usecase.execute(str(profile_id))
     except ProfileNotFoundError:
         return JSONResponse(status_code=404, content={"error": "Profile not found"})
-    return ChatsResponse(chat_ids=[UUID(chat_id) for chat_id in chat_ids])
 
 
 @router.post(

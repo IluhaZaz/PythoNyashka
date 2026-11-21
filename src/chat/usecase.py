@@ -1,4 +1,12 @@
-from src.chat.domain.schemas import ChatCreate, MessageCreate, MessageGet
+from uuid import UUID
+
+from src.chat.domain.schemas import (
+    ChatCreate,
+    ChatMembership,
+    ChatsResponse,
+    MessageCreate,
+    MessageGet,
+)
 from src.chat.infrastructure.storage.postgresql.repository import ChatRepository
 
 
@@ -25,10 +33,16 @@ class GetChats:
     def __init__(self, repository: ChatRepository) -> None:
         self.repository = repository
 
-    async def execute(self, profile_id: str) -> list[str]:
+    async def execute(self, profile_id: str) -> ChatsResponse:
         if not await self.repository.profiles_exist({profile_id}):
             raise ProfileNotFoundError()
-        return await self.repository.get_by_profile(profile_id)
+
+        participants_by_chat = await self.repository.get_by_profile(profile_id)
+        chats = [
+            ChatMembership(id=UUID(chat_id), participant_ids=[UUID(member) for member in members])
+            for chat_id, members in participants_by_chat.items()
+        ]
+        return ChatsResponse(chat_ids=[chat.id for chat in chats], chats=chats)
 
 
 class SendMessage:

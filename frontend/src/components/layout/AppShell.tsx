@@ -31,7 +31,6 @@ export function AppShell() {
   const { data: matches } = useMatchHistory()
   const { data: chats } = useChats()
 
-  const matchCount = matches?.filter((match) => match.status === 'accepted').length ?? 0
   const unreadChats = chats?.reduce((sum, chat) => sum + chat.unread, 0) ?? 0
   const pendingLikes =
     matches?.filter(
@@ -39,7 +38,7 @@ export function AppShell() {
     ).length ?? 0
 
   const counts: Record<string, number> = {
-    '/matches': pendingLikes || matchCount,
+    '/matches': pendingLikes,
     '/chats': unreadChats,
   }
 

@@ -169,7 +169,7 @@ export function SettingsPage() {
                   ? 'Данные живут в localStorage браузера: свайпы, мэтчи, чаты и автоответы. Бэкенд не нужен.'
                   : IS_HYBRID
                     ? 'Аккаунт, анкета и уведомления — живой BFF. Лента, мэтчи и чаты пока на моках (бэкенд их ещё не реализовал).'
-                    : `Запросы идут на ${API_BASE} → BFF :8003. Лента и публичные анкеты в контракте пока не реализованы.`}
+                    : `Запросы идут на ${API_BASE} → BFF :8003.`}
               </p>
               <p className="mt-1 font-mono text-[11px] text-dim">
                 VITE_USE_MOCKS={USE_MOCKS ? 'true' : IS_HYBRID ? 'hybrid' : 'false'} ·

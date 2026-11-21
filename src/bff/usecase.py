@@ -69,12 +69,13 @@ from src.bff.domain.schemas import (
     ChangePasswordRequest,
     ChatCreate,
     ChatCreatedResponse,
+    ChatListItem,
     ChatMessagesResponse,
     ChatsResponse,
     ErrorResponse,
     LoginRequest,
-    MatchGet,
     MatchesGetResponse,
+    MatchGet,
     MatchSwipe,
     MessageCreate,
     MessageGet,
@@ -83,6 +84,7 @@ from src.bff.domain.schemas import (
     ProfileCreatedResponse,
     ProfileGetResponse,
     ProfileUpdate,
+    PublicProfileGetResponse,
     RefreshTokenRequest,
 )
 
@@ -369,13 +371,24 @@ class GetProfile:
         if self.profile_id is None:
             raise InvalidCredentialsError("Невалидный access-токен")
 
+        return ProfileGetResponse.model_validate_json(await self._fetch(self.profile_id))
+
+    async def get_public(self, profile_id: UUID) -> PublicProfileGetResponse:
+        _require_profile_id(self.profile_id)
+        try:
+            content = await self._fetch(profile_id)
+        except ProfileNotFoundError as exc:
+            raise APIRequestError(HTTPStatus.NOT_FOUND, exc.error) from exc
+        return PublicProfileGetResponse.model_validate_json(content)
+
+    async def _fetch(self, profile_id: UUID) -> bytes:
         response = await get_profile_by_id.asyncio_detailed(
-            str(self.profile_id), client=self.profile_client,
+            str(profile_id), client=self.profile_client,
         )
         if response.status_code == HTTPStatus.OK and isinstance(
             response.parsed, GetProfileByIdResponse200,
         ):
-            return ProfileGetResponse.model_validate_json(response.content)
+            return response.content
         if response.status_code == HTTPStatus.NOT_FOUND:
             error = ErrorResponse.model_validate_json(response.content)
             raise ProfileNotFoundError(error.error)
@@ -487,14 +500,25 @@ class Chats:
         self._raise_response_error(response.status_code, response.content)
 
     async def list(self) -> ChatsResponse:
-        response = await get_chats.asyncio_detailed(
-            client=self.client, profile_id=_require_profile_id(self.profile_id),
-        )
+        profile_id = _require_profile_id(self.profile_id)
+        response = await get_chats.asyncio_detailed(client=self.client, profile_id=profile_id)
         if response.status_code == HTTPStatus.OK and isinstance(
             response.parsed, GetChatsResponse200,
         ):
             chat_ids = response.parsed.chat_ids
-            return ChatsResponse(chat_ids=[] if isinstance(chat_ids, Unset) else chat_ids)
+            memberships = response.parsed.chats
+            chats: list[ChatListItem] = []
+            if not isinstance(memberships, Unset):
+                for chat in memberships:
+                    others = [member for member in chat.participant_ids if member != profile_id]
+                    contact_id = (
+                        others[0] if len(chat.participant_ids) == 2 and len(others) == 1 else None
+                    )
+                    chats.append(ChatListItem(id=chat.id, contact_id=contact_id))
+            return ChatsResponse(
+                chat_ids=[] if isinstance(chat_ids, Unset) else chat_ids,
+                chats=chats,
+            )
         self._raise_response_error(response.status_code, response.content)
 
     async def _require_member(self, chat_id: UUID) -> None:

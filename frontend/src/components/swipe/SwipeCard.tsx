@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { MOCK_FEATURES } from '@/api'
 import type { PublicProfile } from '@/api/types'
 import { avatarGradient } from '@/lib/avatar'
 import { cn } from '@/lib/cn'
@@ -113,10 +114,12 @@ export function SwipeCard({
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(74,59,56,.82),rgba(74,59,56,.15)_46%,transparent_70%)]" />
 
           <div className="absolute top-3.5 left-3.5 flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-surface/92 px-3 py-1.5 font-mono text-[11.5px] font-bold text-coral-deep backdrop-blur">
-              <Icon name="spark" size={13} />
-              {Math.round(person.matchScore * 100)}% мэтч
-            </span>
+            {MOCK_FEATURES && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-surface/92 px-3 py-1.5 font-mono text-[11.5px] font-bold text-coral-deep backdrop-blur">
+                <Icon name="spark" size={13} />
+                {Math.round(person.matchScore * 100)}% мэтч
+              </span>
+            )}
             {person.online && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-surface/92 px-2.5 py-1.5 text-[11px] font-extrabold text-mint-deep backdrop-blur">
                 <span className="h-1.5 w-1.5 rounded-full bg-mint" />в сети
@@ -138,7 +141,7 @@ export function SwipeCard({
             <h2 className="font-display text-[26px] leading-tight font-extrabold drop-shadow">
               {person.name}, <span className="font-body font-semibold">{person.age}</span>
             </h2>
-            <p className="text-[13px] font-semibold text-white/85">{person.role}</p>
+            {person.role && <p className="text-[13px] font-semibold text-white/85">{person.role}</p>}
           </div>
 
           <span
@@ -156,18 +159,20 @@ export function SwipeCard({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11.5px] text-dim">
-            <span className="inline-flex items-center gap-1">
-              <Icon name="pin" size={13} />
-              {person.city} · {km(person.distanceKm)}
-            </span>
-            {!person.online && (
+          {MOCK_FEATURES && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11.5px] text-dim">
               <span className="inline-flex items-center gap-1">
-                <Icon name="clock" size={13} />
-                была недавно
+                <Icon name="pin" size={13} />
+                {person.city} · {km(person.distanceKm)}
               </span>
-            )}
-          </div>
+              {!person.online && (
+                <span className="inline-flex items-center gap-1">
+                  <Icon name="clock" size={13} />
+                  была недавно
+                </span>
+              )}
+            </div>
+          )}
 
           <p className="mt-3 text-[14px] leading-relaxed text-ink/85">{person.bio}</p>
 

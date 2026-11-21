@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueries, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ApiError } from '@/api'
+import { ApiError, api } from '@/api'
 import type { ChatSummary, Message, PublicProfile } from '@/api/types'
 import {
   keys,
@@ -171,7 +171,31 @@ export function ChatsPage() {
   const composerRef = useRef<HTMLTextAreaElement>(null)
 
   const meId = useMyId()
-  const list = chats.data ?? []
+  const contactIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const chat of chats.data ?? []) {
+      if (chat.contactId && !chat.contact) ids.add(chat.contactId)
+    }
+    return [...ids]
+  }, [chats.data])
+  const contacts = useQueries({
+    queries: contactIds.map((id) => ({
+      queryKey: keys.person(id),
+      queryFn: () => api.publicProfile(id),
+      staleTime: 60_000,
+    })),
+    combine: (results) => {
+      const byId: Record<string, PublicProfile> = {}
+      for (const { data } of results) {
+        if (data) byId[data.id] = data
+      }
+      return byId
+    },
+  })
+  const list = useMemo(() => (chats.data ?? []).map((chat) => {
+    const contact = chat.contactId ? contacts[chat.contactId] : undefined
+    return contact ? { ...chat, contact } : chat
+  }), [chats.data, contacts])
   const active = list.find((chat) => chat.id === chatId) ?? null
   const contact = active?.contact ?? null
   const send = useSendMessage(chatId ?? '')
@@ -282,11 +306,9 @@ export function ChatsPage() {
                   <span className="font-semibold text-coral-deep">печатает…</span>
                 ) : contact?.online ? (
                   'в сети'
-                ) : contact ? (
+                ) : contact?.lastSeen ? (
                   `была ${timeAgo(contact.lastSeen)}`
-                ) : (
-                  'профиль недоступен'
-                )}
+                ) : null}
               </p>
             </div>
             {contact && (

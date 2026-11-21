@@ -72,8 +72,7 @@ export interface ChatMessages {
 }
 
 /* ── Модель приложения ──────────────────────────────────────────────────
-   В контракте нет ни ленты кандидатов, ни публичной анкеты по id, поэтому
-   эти поля пока живут только в мок-слое. Живой API отдаёт их как null. */
+   Дополнительные сведения о кандидатах заполняются в демо-режиме. */
 
 export interface PublicProfile {
   id: string
@@ -96,6 +95,7 @@ export interface PublicProfile {
 
 export interface ChatSummary {
   id: string
+  contactId: string | null
   contact: PublicProfile | null
   lastMessage: Message | null
   unread: number

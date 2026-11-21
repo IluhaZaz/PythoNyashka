@@ -3,7 +3,7 @@ import { useQueries } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { ApiError, api } from '@/api'
 import type { Match, PublicProfile } from '@/api/types'
-import { keys, useAnswerMatch, useChats, useMatchHistory } from '@/api/hooks'
+import { keys, useAnswerMatch, useCreateChat, useMatchHistory } from '@/api/hooks'
 import { avatarGradient } from '@/lib/avatar'
 import { cn } from '@/lib/cn'
 import { plural, timeAgo } from '@/lib/format'
@@ -24,7 +24,7 @@ export function MatchesPage() {
   const { push } = useToast()
   const navigate = useNavigate()
   const history = useMatchHistory()
-  const { data: chats } = useChats()
+  const createChat = useCreateChat()
   const answer = useAnswerMatch()
   const [tab, setTab] = useState<Tab>('incoming')
   const [opened, setOpened] = useState<PublicProfile | null>(null)
@@ -58,18 +58,30 @@ export function MatchesPage() {
   const matched = rows.filter((match) => match.status === 'accepted')
   const shown = tab === 'incoming' ? incoming : tab === 'matched' ? matched : rows
 
+  const openChat = async (match: Match) => {
+    if (createChat.isPending) return
+    try {
+      const { id } = await createChat.mutateAsync([otherId(match)])
+      navigate(`/chats/${id}`)
+    } catch (error) {
+      push({
+        tone: 'coral',
+        title: 'Не получилось открыть чат',
+        text: error instanceof ApiError ? error.message : undefined,
+      })
+    }
+  }
+
   const respond = async (match: Match, decision: 'like' | 'dislike') => {
     setPendingId(match.id)
     try {
       await answer.mutateAsync({ id: match.id, decision })
-      const person = personById.get(otherId(match))
       if (decision === 'like') {
         push({
           tone: 'mint',
           emoji: '💞',
           title: 'Взаимно!',
-          text: `Чат с ${person?.name ?? 'новой няшкой'} открыт.`,
-          action: { label: 'Открыть чаты', onClick: () => navigate('/chats') },
+          action: { label: 'Написать', onClick: () => void openChat(match) },
         })
       } else {
         push({ tone: 'sky', emoji: '🫥', title: 'Отклонено', text: 'Анкета больше не появится.' })
@@ -85,12 +97,6 @@ export function MatchesPage() {
     }
   }
 
-  const openChat = (match: Match) => {
-    const contactId = otherId(match)
-    const chat = chats?.find((item) => item.contact?.id === contactId)
-    if (chat) navigate(`/chats/${chat.id}`)
-    else navigate('/chats')
-  }
 
   return (
     <>
@@ -260,7 +266,13 @@ export function MatchesPage() {
                     </>
                   )}
                   {match.status === 'accepted' && (
-                    <Button size="sm" icon="send" onClick={() => openChat(match)}>
+                    <Button
+                      size="sm"
+                      icon="send"
+                      disabled={createChat.isPending}
+                      loading={createChat.isPending && createChat.variables?.[0] === otherId(match)}
+                      onClick={() => void openChat(match)}
+                    >
                       Написать
                     </Button>
                   )}

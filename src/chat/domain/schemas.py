@@ -28,8 +28,14 @@ class ChatCreatedResponse(BaseModel):
     id: UUID
 
 
+class ChatMembership(BaseModel):
+    id: UUID
+    participant_ids: list[UUID] = Field(serialization_alias="participantIds")
+
+
 class ChatsResponse(BaseModel):
     chat_ids: list[UUID] = Field(serialization_alias="chatIds")
+    chats: list[ChatMembership]
 
 
 class ChatMessagesResponse(BaseModel):

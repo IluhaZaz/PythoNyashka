@@ -102,7 +102,7 @@ class ProfileCreatedResponse(BaseModel):
     id: UUID
 
 
-class ProfileGet(BaseModel):
+class PublicProfileGet(BaseModel):
     model_config = ConfigDict(strict=True)
 
     id: UUID
@@ -112,13 +112,20 @@ class ProfileGet(BaseModel):
     bio: str
     gender: Literal["male", "female"]
     tags: list[str]
-    created_at: datetime
-    updated_at: datetime
-    email: EmailStr | None = None
     avatar: UUID | None = Field(
         default=None,
         validation_alias=AliasChoices("avatar", "avatar_id"),
     )
+
+
+class PublicProfileGetResponse(BaseModel):
+    profile: PublicProfileGet
+
+
+class ProfileGet(PublicProfileGet):
+    created_at: datetime
+    updated_at: datetime
+    email: EmailStr | None = None
 
 
 class ProfileGetResponse(BaseModel):
@@ -147,8 +154,14 @@ class ChatCreatedResponse(BaseModel):
     id: UUID
 
 
+class ChatListItem(BaseModel):
+    id: UUID
+    contact_id: UUID | None = Field(serialization_alias="contactId")
+
+
 class ChatsResponse(BaseModel):
     chat_ids: list[UUID] = Field(serialization_alias="chatIds")
+    chats: list[ChatListItem]
 
 
 class MessageCreate(BaseModel):

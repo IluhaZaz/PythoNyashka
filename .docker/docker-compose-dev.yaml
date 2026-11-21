@@ -256,10 +256,27 @@ services:
       migrations:
         condition: service_completed_successfully
 
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_USE_MOCKS=${VITE_USE_MOCKS:-false}
+      - VITE_PROXY_TARGET=http://bff:8000
+    volumes:
+      - ../frontend:/app
+      - frontend_modules:/app/node_modules
+    networks:
+      - public
+
 volumes:
   postgres_data:
   minio_data:
   kafka_data:
+  frontend_modules:
 
 networks:
   public:

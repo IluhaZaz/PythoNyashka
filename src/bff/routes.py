@@ -22,6 +22,7 @@ from src.bff.domain.schemas import (
     ProfileCreate,
     ProfileCreatedResponse,
     ProfileGetResponse,
+    PublicProfileGetResponse,
     ProfileUpdate,
     RefreshTokenRequest,
 )
@@ -300,6 +301,20 @@ async def get_profile(
             status_code=404,
             content=ErrorResponse(error=exc.error).model_dump(),
         )
+
+
+@profiles_router.get(
+    "/profiles/{profile_id}/public",
+    operation_id="getPublicProfile",
+    response_model=PublicProfileGetResponse,
+    responses={401: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    tags=["Profiles"],
+)
+async def get_public_profile(
+    profile_id: UUID,
+    usecase: Annotated[GetProfile, Depends(dependencies.get_profile_uc)],
+) -> PublicProfileGetResponse:
+    return await usecase.get_public(profile_id)
 
 
 @profiles_router.patch(

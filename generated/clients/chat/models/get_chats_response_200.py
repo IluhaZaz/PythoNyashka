@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import UUID
 
 from attrs import define as _attrs_define
@@ -9,6 +9,10 @@ from attrs import field as _attrs_field
 from typing_extensions import Self
 
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.get_chats_response_200_chats_item import GetChatsResponse200ChatsItem
+
 
 T = TypeVar("T", bound="GetChatsResponse200")
 
@@ -18,9 +22,11 @@ class GetChatsResponse200:
     """
     Attributes:
         chat_ids (list[UUID] | Unset):
+        chats (list[GetChatsResponse200ChatsItem] | Unset):
     """
 
     chat_ids: list[UUID] | Unset = UNSET
+    chats: list[GetChatsResponse200ChatsItem] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -31,16 +37,29 @@ class GetChatsResponse200:
                 chat_ids_item = str(chat_ids_item_data)
                 chat_ids.append(chat_ids_item)
 
+        chats: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.chats, Unset):
+            chats = []
+            for chats_item_data in self.chats:
+                chats_item = chats_item_data.to_dict()
+                chats.append(chats_item)
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
         if chat_ids is not UNSET:
             field_dict["chatIds"] = chat_ids
+        if chats is not UNSET:
+            field_dict["chats"] = chats
 
         return field_dict
 
     @classmethod
     def from_dict(cls, src_dict: Mapping[str, Any]) -> Self:
+        from ..models.get_chats_response_200_chats_item import (
+            GetChatsResponse200ChatsItem,
+        )
+
         d = dict(src_dict)
         _chat_ids = d.pop("chatIds", UNSET)
         chat_ids: list[UUID] | Unset = UNSET
@@ -51,8 +70,18 @@ class GetChatsResponse200:
 
                 chat_ids.append(chat_ids_item)
 
+        _chats = d.pop("chats", UNSET)
+        chats: list[GetChatsResponse200ChatsItem] | Unset = UNSET
+        if _chats is not UNSET:
+            chats = []
+            for chats_item_data in _chats:
+                chats_item = GetChatsResponse200ChatsItem.from_dict(chats_item_data)
+
+                chats.append(chats_item)
+
         get_chats_response_200 = cls(
             chat_ids=chat_ids,
+            chats=chats,
         )
 
         get_chats_response_200.additional_properties = d

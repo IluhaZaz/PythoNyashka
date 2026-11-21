@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.chat.domain.schemas import MessageGet
@@ -16,6 +16,11 @@ class ChatRepository:
         return set(result) == profile_ids
 
     async def create(self, profile_ids: set[str]) -> str:
+        if len(profile_ids) == 2:
+            existing_id = await self._find_direct_chat(profile_ids)
+            if existing_id is not None:
+                return existing_id
+
         chat = Chat()
         self.session.add(chat)
         await self.session.flush()
@@ -26,13 +31,37 @@ class ChatRepository:
         await self.session.commit()
         return str(chat.id)
 
-    async def get_by_profile(self, profile_id: str) -> list[str]:
+    async def _find_direct_chat(self, profile_ids: set[str]) -> str | None:
+        first_profile_id = min(profile_ids)
+        # Both participants lock the same profile before looking up or creating the chat.
+        await self.session.scalar(
+            select(Profile.id).where(Profile.id == first_profile_id).with_for_update()
+        )
+        candidate_ids = select(ChatMember.chat_id).where(ChatMember.profile_id == first_profile_id)
         query = (
             select(ChatMember.chat_id)
-            .where(ChatMember.profile_id == profile_id)
+            .where(ChatMember.chat_id.in_(candidate_ids))
+            .group_by(ChatMember.chat_id)
+            .having(
+                func.count() == 2,
+                func.count().filter(ChatMember.profile_id.in_(profile_ids)) == 2,
+            )
             .order_by(ChatMember.chat_id)
+            .limit(1)
         )
-        return list(await self.session.scalars(query))
+        return await self.session.scalar(query)
+
+    async def get_by_profile(self, profile_id: str) -> dict[str, list[str]]:
+        owned_chat_ids = select(ChatMember.chat_id).where(ChatMember.profile_id == profile_id)
+        query = (
+            select(ChatMember.chat_id, ChatMember.profile_id)
+            .where(ChatMember.chat_id.in_(owned_chat_ids))
+            .order_by(ChatMember.chat_id, ChatMember.profile_id)
+        )
+        participants_by_chat: dict[str, list[str]] = {}
+        for chat_id, participant_id in await self.session.execute(query):
+            participants_by_chat.setdefault(chat_id, []).append(participant_id)
+        return participants_by_chat
 
     async def chat_exists(self, chat_id: str) -> bool:
         return await self.session.get(Chat, chat_id) is not None

@@ -6,6 +6,7 @@ from .create_chat_response_404 import CreateChatResponse404
 from .get_chat_messages_response_200 import GetChatMessagesResponse200
 from .get_chat_messages_response_404 import GetChatMessagesResponse404
 from .get_chats_response_200 import GetChatsResponse200
+from .get_chats_response_200_chats_item import GetChatsResponse200ChatsItem
 from .get_chats_response_404 import GetChatsResponse404
 from .message_create import MessageCreate
 from .message_get import MessageGet
@@ -18,6 +19,7 @@ __all__ = (
     "GetChatMessagesResponse200",
     "GetChatMessagesResponse404",
     "GetChatsResponse200",
+    "GetChatsResponse200ChatsItem",
     "GetChatsResponse404",
     "MessageCreate",
     "MessageGet",

@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -20,6 +20,22 @@ class MatchRepository:
     async def lock_profile(self, profile_id: str) -> bool:
         query = select(Profile.id).where(Profile.id == profile_id).with_for_update()
         return await self.session.scalar(query) is not None
+
+    async def get_pending_match(self, profile_id: str) -> MatchGet | None:
+        query = (
+            select(Match)
+            .join(Profile, Profile.id == Match.target_profile_id)
+            .where(
+                Match.initiator_profile_id == profile_id,
+                Match.decision == SwipeDecision.pending.value,
+            )
+            .order_by(Match.created_at, Match.id)
+            .limit(1)
+        )
+        match = await self.session.scalar(query)
+        if match is None:
+            return None
+        return self._to_response(match, other_decision=None)
 
     async def find_candidate(self, profile_id: str) -> str | None:
         seen = select(Match.target_profile_id).where(Match.initiator_profile_id == profile_id)
@@ -52,20 +68,52 @@ class MatchRepository:
     async def update_decision(
         self, match_id: str, profile_id: str, decision: SwipeDecision,
     ) -> bool:
-        query = (
-            update(Match)
-            .where(
-                Match.id == match_id,
-                Match.initiator_profile_id == profile_id
-            )
-            .values(decision=decision.value)
-            .returning(Match.id)
-        )
-        result = await self.session.execute(query)
-        updated_id = result.scalar_one_or_none()
-        if updated_id is None:
+        if not await self.lock_profile(profile_id):
             return False
+
+        match = await self.session.get(Match, match_id)
+        if match is None:
+            return False
+
+        if match.initiator_profile_id == profile_id:
+            match.decision = decision.value
+        elif match.target_profile_id == profile_id and match.decision == SwipeDecision.like:
+            if not await self._answer_incoming(profile_id, match.initiator_profile_id, decision):
+                return False
+        else:
+            return False
+
         await self.session.commit()
+        return True
+
+    async def _answer_incoming(
+        self, profile_id: str, sender_id: str, decision: SwipeDecision,
+    ) -> bool:
+        query = (
+            select(Match)
+            .where(
+                Match.initiator_profile_id == profile_id,
+                Match.target_profile_id == sender_id,
+            )
+            .order_by(
+                (Match.decision != SwipeDecision.pending.value).desc(),
+                Match.created_at.desc(),
+                Match.id.desc(),
+            )
+            .limit(1)
+        )
+        answer = await self.session.scalar(query)
+        if answer is None:
+            self.session.add(Match(
+                initiator_profile_id=profile_id,
+                target_profile_id=sender_id,
+                decision=decision.value,
+            ))
+        elif answer.decision == SwipeDecision.pending:
+            answer.decision = decision.value
+        else:
+            return answer.decision == decision
+
         return True
 
     async def get_history(
@@ -85,7 +133,17 @@ class MatchRepository:
         )
         query = (
             select(Match, other_decision)
-            .where(Match.initiator_profile_id == profile_id)
+            .where(or_(
+                and_(
+                    Match.initiator_profile_id == profile_id,
+                    Match.decision != SwipeDecision.pending.value,
+                ),
+                and_(
+                    Match.target_profile_id == profile_id,
+                    Match.decision == SwipeDecision.like.value,
+                    other_decision.is_(None),
+                ),
+            ))
             .order_by(Match.created_at.desc(), Match.id.desc())
             .offset(offset)
             .limit(limit)
@@ -94,7 +152,10 @@ class MatchRepository:
         return [
             MatchHistoryItem(
                 **self._to_response(match, other_decision).model_dump(),
-                my_swipe=SWIPE_BY_DECISION.get(match.decision),
+                my_swipe=(
+                    SWIPE_BY_DECISION.get(match.decision)
+                    if match.initiator_profile_id == profile_id else None
+                ),
             )
             for match, other_decision in result
         ]

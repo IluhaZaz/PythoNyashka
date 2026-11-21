@@ -144,6 +144,35 @@ paths:
           $ref: '#/components/responses/ProfileGetResponse'
         '404':
           $ref: '#/components/responses/ProfileNotFoundResponse'
+  /profiles/{profile_id}/public:
+    get:
+      summary: Get a public profile
+      operationId: getPublicProfile
+      tags:
+        - Profiles
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Public profile fields
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [profile]
+                properties:
+                  profile:
+                    $ref: '#/components/schemas/PublicProfileGet'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/EntityNotFoundResponse'
+
   /chats:
     post:
       summary: Create a new chat
@@ -497,6 +526,33 @@ components:
                 type: string
               reason:
                 type: string
+    PublicProfileGet:
+      type: object
+      required: [id, name, surname, age, bio, gender, tags]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        surname:
+          type: string
+        age:
+          type: integer
+        bio:
+          type: string
+        gender:
+          type: string
+          enum: [male, female]
+        tags:
+          type: array
+          items:
+            type: string
+        avatar:
+          type: string
+          format: uuid
+          nullable: true
+
     ProfileGet:
       type: object
       required: [id, name, surname, age, bio, gender, tags, created_at, updated_at]
@@ -836,7 +892,7 @@ components:
                   $ref: '#/components/schemas/MessageGet'
 
     ChatsResponse:
-      description: got all chat ids
+      description: Chats for the current profile
       content:
         application/json:
           schema:
@@ -847,6 +903,20 @@ components:
                 items:
                   type: string
                   format: uuid
+              chats:
+                type: array
+                items:
+                  type: object
+                  required: [id, contactId]
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    contactId:
+                      type: string
+                      format: uuid
+                      nullable: true
+                      description: The other participant in a two-person chat.
 
     EntityNotFoundResponse:
       description: entity with such id not found

@@ -32,6 +32,10 @@ class ProfileRepository:
             return None
         return ProfileGet.model_validate(profile, from_attributes=True)
 
+    async def has_avatar(self, media_id: str) -> bool:
+        query = select(select(Profile.id).where(Profile.avatar_id == media_id).exists())
+        return bool(await self.session.scalar(query))
+
     async def delete(self, profile_id: str) -> None:
         await self.session.execute(delete(Profile).where(Profile.id == profile_id))
         await self.session.commit()

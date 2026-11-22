@@ -4,6 +4,7 @@ from http import HTTPStatus
 from typing import NoReturn
 from uuid import UUID
 
+import httpx
 from fastapi import UploadFile
 
 from generated.clients.auth.api.auth import login, logout, refresh_token, register, reset_password
@@ -22,8 +23,16 @@ from generated.clients.auth.models.register_response_201 import RegisterResponse
 from generated.clients.auth.models.register_response_400 import RegisterResponse400
 from generated.clients.auth.models.reset_password_response_400 import ResetPasswordResponse400
 from generated.clients.auth.models.reset_password_response_401 import ResetPasswordResponse401
-from generated.clients.chat.api.chats import create_chat, get_chat_messages, get_chats, send_message
+from generated.clients.chat.api.chats import (
+    create_chat,
+    get_attachment_access,
+    get_chat_messages,
+    get_chats,
+    send_message,
+)
 from generated.clients.chat.client import Client as ChatClient
+from generated.clients.chat.models.attachment_access import AttachmentAccess
+from generated.clients.chat.models.attachment_access_response import AttachmentAccessResponse
 from generated.clients.chat.models.chat_create import ChatCreate as ClientChatCreate
 from generated.clients.chat.models.create_chat_response_200 import CreateChatResponse200
 from generated.clients.chat.models.get_chat_messages_response_200 import GetChatMessagesResponse200
@@ -52,6 +61,7 @@ from generated.clients.notification.models.get_notifications_response_200 import
 from generated.clients.profile.api.profiles import (
     create_profile,
     delete_profile,
+    get_avatar_usage,
     get_profile_by_id,
     update_profile,
 )
@@ -335,15 +345,24 @@ class MediaNotFoundError(Exception):
 
 
 class GetMedia:
-    def __init__(self, client: MediaClient, authenticated: bool) -> None:
-        self.client = client
-        self.authenticated = authenticated
+    def __init__(
+        self, profile_id: UUID | None, media_client: MediaClient,
+        chat_client: ChatClient, profile_client: ProfileClient,
+    ) -> None:
+        self.profile_id = profile_id
+        self.media_client = media_client
+        self.chat_client = chat_client
+        self.profile_client = profile_client
 
     async def execute(self, media_id: UUID) -> tuple[bytes, str, str | None]:
-        if not self.authenticated:
+        if self.profile_id is None:
             raise InvalidCredentialsError("Невалидный access-токен")
 
-        response = await get_media_by_id.asyncio_detailed(media_id, client=self.client)
+        try:
+            await self._require_access(media_id, self.profile_id)
+            response = await get_media_by_id.asyncio_detailed(media_id, client=self.media_client)
+        except (httpx.RequestError, KeyError, TypeError, ValueError) as exc:
+            raise APIRequestError(HTTPStatus.BAD_GATEWAY, "Media request failed") from exc
         if response.status_code == HTTPStatus.OK and isinstance(response.parsed, File):
             return (
                 response.content,
@@ -353,7 +372,28 @@ class GetMedia:
         if response.status_code == HTTPStatus.NOT_FOUND:
             raise MediaNotFoundError()
 
-        raise RuntimeError(f"Unexpected Media Service response: {response.status_code}")
+        raise APIRequestError(HTTPStatus.BAD_GATEWAY, "Unexpected Media Service response")
+
+    async def _require_access(self, media_id: UUID, profile_id: UUID) -> None:
+        result = await get_attachment_access.asyncio_detailed(
+            media_id, client=self.chat_client, profile_id=profile_id,
+        )
+        if result.status_code != HTTPStatus.OK or not isinstance(
+            result.parsed, AttachmentAccessResponse,
+        ):
+            raise APIRequestError(HTTPStatus.BAD_GATEWAY, "Attachment access check failed")
+
+        if result.parsed.access == AttachmentAccess.ALLOWED:
+            return
+        if result.parsed.access == AttachmentAccess.DENIED:
+            raise MediaNotFoundError()
+
+        avatar = await get_avatar_usage.asyncio_detailed(media_id, client=self.profile_client)
+        if avatar.status_code == HTTPStatus.NO_CONTENT:
+            return
+        if avatar.status_code == HTTPStatus.NOT_FOUND:
+            raise MediaNotFoundError()
+        raise APIRequestError(HTTPStatus.BAD_GATEWAY, "Avatar access check failed")
 
 
 class ProfileNotFoundError(Exception):

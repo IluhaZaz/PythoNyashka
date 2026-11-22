@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import StrEnum
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -41,6 +42,16 @@ class ChatsResponse(BaseModel):
 class ChatMessagesResponse(BaseModel):
     chat_id: UUID = Field(serialization_alias="chatId")
     messages: list[MessageGet]
+
+
+class AttachmentAccess(StrEnum):
+    ALLOWED = "allowed"
+    DENIED = "denied"
+    UNLINKED = "unlinked"
+
+
+class AttachmentAccessResponse(BaseModel):
+    access: AttachmentAccess
 
 
 class Error(BaseModel):

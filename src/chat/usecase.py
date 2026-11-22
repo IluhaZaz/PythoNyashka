@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from src.chat.domain.schemas import (
+    AttachmentAccess,
     ChatCreate,
     ChatMembership,
     ChatsResponse,
@@ -70,3 +71,14 @@ class GetChatMessages:
         if not await self.repository.chat_exists(chat_id):
             raise ChatNotFoundError()
         return await self.repository.get_messages(chat_id, limit=limit, offset=offset)
+
+
+class GetAttachmentAccess:
+    def __init__(self, repository: ChatRepository) -> None:
+        self.repository = repository
+
+    async def execute(self, media_id: str, profile_id: str) -> AttachmentAccess:
+        access = await self.repository.get_attachment_access(media_id, profile_id)
+        if access is None:
+            return AttachmentAccess.UNLINKED
+        return AttachmentAccess.ALLOWED if access else AttachmentAccess.DENIED

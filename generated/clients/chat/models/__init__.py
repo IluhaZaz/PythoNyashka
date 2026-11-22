@@ -1,5 +1,7 @@
 """Contains all the data models used in inputs/outputs"""
 
+from .attachment_access import AttachmentAccess
+from .attachment_access_response import AttachmentAccessResponse
 from .chat_create import ChatCreate
 from .create_chat_response_200 import CreateChatResponse200
 from .create_chat_response_404 import CreateChatResponse404
@@ -13,6 +15,8 @@ from .message_get import MessageGet
 from .send_message_response_404 import SendMessageResponse404
 
 __all__ = (
+    "AttachmentAccess",
+    "AttachmentAccessResponse",
     "ChatCreate",
     "CreateChatResponse200",
     "CreateChatResponse404",

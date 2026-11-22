@@ -369,7 +369,8 @@ async def update_profile(
             "headers": {"Content-Disposition": {"schema": {"type": "string"}}},
         },
         401: {"model": ErrorResponse},
-        404: {"description": "Media not found"},
+        404: {"description": "Media unavailable or not found"},
+        502: {"model": ErrorResponse, "description": "Media or access service failed"},
     },
     tags=["Media"],
 )

@@ -1,5 +1,6 @@
 import logging
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse, Response
@@ -9,6 +10,7 @@ from src.profile.domain.schemas import ProfileCreate, ProfileGet, ProfileUpdate
 from src.profile.usecase import (
     CreateProfile,
     DeleteProfile,
+    GetAvatarUsage,
     GetProfile,
     ProfileAlreadyExistsError,
     ProfileNotFoundError,
@@ -73,3 +75,17 @@ async def get_profile(
             content={"error": "Profile not found"},
         )
     return JSONResponse(status_code=200, content={"profile": profile.model_dump(mode='json')})
+
+
+@router.get(
+    "/avatars/{media_id}",
+    operation_id="getAvatarUsage",
+    status_code=204,
+    response_class=Response,
+    responses={404: {"description": "File is not a current profile avatar"}},
+)
+async def get_avatar_usage(
+    media_id: UUID,
+    usecase: Annotated[GetAvatarUsage, Depends(dependencies.get_avatar_usage_uc)],
+) -> Response:
+    return Response(status_code=204 if await usecase.execute(str(media_id)) else 404)

@@ -48,6 +48,24 @@ paths:
           $ref: '#/components/responses/ProfileNotFoundResponse'
         '422':
           $ref: '#/components/responses/UnprocessableProfileResponse'
+  /profiles/avatars/{media_id}:
+    get:
+      summary: Check whether a file is a current profile avatar
+      operationId: getAvatarUsage
+      tags: [Profiles]
+      parameters:
+        - name: media_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: File is a current profile avatar.
+        '404':
+          description: File is not a current profile avatar.
+
   /profiles/{profile_id}:
     delete:
       summary: Delete a profile after failed registration

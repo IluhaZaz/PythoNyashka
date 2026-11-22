@@ -87,6 +87,7 @@ def test_registration_matching_chat_notifications_and_sessions(stand):
     avatar = request(client, "GET", avatar_path, 200, headers=a_headers)
     assert avatar.content == PNG
     assert avatar.headers["content-type"] == "image/png"
+    assert request(client, "GET", avatar_path, 200, headers=b_headers).content == PNG
     request(client, "GET", avatar_path, 401)
 
     def swipe(headers, actor, target, answer):
@@ -155,6 +156,7 @@ def test_registration_matching_chat_notifications_and_sessions(stand):
     third_id = signup(client, outsider).json()["id"]
     third = request(client, "POST", "/auth/login", 200, json=credentials(outsider)).json()
     third_headers = bearer(third)
+    request(client, "GET", attachment_url, 404, headers=third_headers)
     other_chat_id = request(
         client, "POST", "/chats", 200, headers=third_headers, json={"contactIds": [bob_id]}
     ).json()["id"]

@@ -46,3 +46,9 @@ def get_chat_messages_uc(
     repo: Annotated[ChatRepository, Depends(get_repository)],
 ) -> usecase.GetChatMessages:
     return usecase.GetChatMessages(repository=repo)
+
+
+def get_attachment_access_uc(
+    repo: Annotated[ChatRepository, Depends(get_repository)],
+) -> usecase.GetAttachmentAccess:
+    return usecase.GetAttachmentAccess(repository=repo)

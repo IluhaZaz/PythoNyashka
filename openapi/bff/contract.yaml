@@ -287,7 +287,8 @@ paths:
       summary: Get media content
       description: |
         Returns file bytes through BFF without redirecting to Media Service.
-        Any valid access JWT permits retrieving a file by media_id. No profile or chat ownership check is performed.
+        Requires a valid access JWT. Chat attachments are available to members of the
+        associated chats. Authenticated users can retrieve current public profile avatars.
       operationId: getMediaById
       tags:
         - Media
@@ -314,7 +315,13 @@ paths:
                 type: string
                 format: binary
         '404':
-          description: Media not found
+          description: Media unavailable or not found.
+        '502':
+          description: Media or access service failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /matches:
     get:

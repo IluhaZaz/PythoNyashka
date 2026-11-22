@@ -16,6 +16,11 @@ import type {
 
 export type ApiMode = 'mock' | 'live' | 'hybrid'
 
+export interface MediaAttachment {
+  blob: Blob
+  fileName: string | null
+}
+
 export interface NyashkaApi {
   readonly mode: ApiMode
 
@@ -27,6 +32,7 @@ export interface NyashkaApi {
   getProfile(): Promise<Profile>
   updateProfile(input: ProfileUpdateInput): Promise<void>
   mediaBlob(mediaId: string, signal?: AbortSignal): Promise<Blob>
+  attachment(mediaId: string, signal?: AbortSignal): Promise<MediaAttachment>
 
   notifications(limit: number, offset: number): Promise<NotificationItem[]>
   markNotificationRead(id: string): Promise<void>

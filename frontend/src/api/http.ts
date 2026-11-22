@@ -1,3 +1,4 @@
+import type { MediaAttachment } from './contract'
 import { tokenStore } from './tokens'
 import type { AuthTokens } from './types'
 
@@ -160,7 +161,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   return (await response.json()) as T
 }
 
-export async function requestBlob(path: string, signal?: AbortSignal): Promise<Blob> {
+async function mediaResponse(path: string, signal?: AbortSignal): Promise<Response> {
   let response: Response
   try {
     response = await send(path, { signal }, tokenStore.access())
@@ -172,5 +173,31 @@ export async function requestBlob(path: string, signal?: AbortSignal): Promise<B
     if (fresh) response = await send(path, { signal }, fresh)
   }
   if (!response.ok) throw await toError(response)
-  return response.blob()
+  return response
+}
+
+export async function requestBlob(path: string, signal?: AbortSignal): Promise<Blob> {
+  return (await mediaResponse(path, signal)).blob()
+}
+
+function dispositionFileName(header: string | null): string | null {
+  if (!header) return null
+  const encoded = /(?:^|;)\s*filename\*\s*=\s*UTF-8'[^']*'([^;\s]+)/i.exec(header)?.[1]
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded)
+    } catch {
+      // A malformed extended name can still have a valid plain filename.
+    }
+  }
+  const plain = /(?:^|;)\s*filename\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^;]*))/i.exec(header)
+  return plain?.[1]?.replace(/\\(.)/g, '$1') || plain?.[2]?.trim() || null
+}
+
+export async function requestAttachment(path: string, signal?: AbortSignal): Promise<MediaAttachment> {
+  const response = await mediaResponse(path, signal)
+  return {
+    blob: await response.blob(),
+    fileName: dispositionFileName(response.headers.get('content-disposition')),
+  }
 }

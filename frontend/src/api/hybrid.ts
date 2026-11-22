@@ -45,6 +45,10 @@ export const hybridApi: NyashkaApi = {
     }
   },
 
+  attachment(mediaId, signal) {
+    return withMockSession(() => mockApi.attachment(mediaId, signal))
+  },
+
   notifications(limit, offset) {
     return liveApi.notifications(limit, offset)
   },

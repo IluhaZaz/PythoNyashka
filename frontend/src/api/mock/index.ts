@@ -235,11 +235,22 @@ export const mockApi: NyashkaApi = {
     save()
   },
 
-  async mediaBlob(mediaId) {
+  async mediaBlob(mediaId, signal) {
     const stored = db.media[mediaId]
-    const svg = stored ?? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(avatarSvg(mediaId))}`
-    const response = await fetch(svg)
+    const dataUrl = typeof stored === 'string' ? stored : stored?.dataUrl
+    const svg = dataUrl ?? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(avatarSvg(mediaId))}`
+    const response = await fetch(svg, { signal })
     return response.blob()
+  },
+
+  async attachment(mediaId, signal) {
+    const stored = db.media[mediaId]
+    if (!stored) throw new ApiError(404, 'Вложение не найдено')
+    const response = await fetch(typeof stored === 'string' ? stored : stored.dataUrl, { signal })
+    return {
+      blob: await response.blob(),
+      fileName: typeof stored === 'string' ? null : stored.fileName,
+    }
   },
 
   async notifications(limit, offset) {
@@ -442,7 +453,7 @@ export const mockApi: NyashkaApi = {
     const attachments: string[] = []
     for (const file of media) {
       const mediaId = newId()
-      db.media[mediaId] = await fileToDataUrl(file)
+      db.media[mediaId] = { dataUrl: await fileToDataUrl(file), fileName: file.name }
       attachments.push(`/api/media/${mediaId}`)
     }
     chat.messages.push({

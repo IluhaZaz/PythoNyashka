@@ -15,7 +15,8 @@ import { cn } from '@/lib/cn'
 import { clockTime, dayLabel, shortAgo, timeAgo } from '@/lib/format'
 import { useAuth, useMyId } from '@/state/auth'
 import { useToast } from '@/state/toast'
-import { Avatar, MediaImage } from '@/components/MediaImage'
+import { ChatAttachment } from '@/components/ChatAttachment'
+import { Avatar } from '@/components/MediaImage'
 import { PersonModal } from '@/components/PersonModal'
 import { Button } from '@/components/ui/Button'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/Feedback'
@@ -27,8 +28,6 @@ const ICE_BREAKERS = [
   'Твой стек — огонь. Какой редактор?',
   'Табы или пробелы? Важный вопрос 🙂',
 ]
-
-const mediaIdOf = (value: string) => value.replace(/^\/?api\/media\//, '').replace(/^\/media\//, '')
 
 function ChatListItem({
   chat,
@@ -124,14 +123,8 @@ function MessageGroup({
                 {message.text && <p className="whitespace-pre-wrap">{message.text}</p>}
                 {message.media.length > 0 && (
                   <div className={cn('grid gap-2', message.text && 'mt-2')}>
-                    {message.media.map((media) => (
-                      <MediaImage
-                        key={media}
-                        mediaId={mediaIdOf(media)}
-                        seed={media}
-                        alt="Вложение"
-                        className="max-h-56 w-full rounded-2xl"
-                      />
+                    {message.media.map((media, index) => (
+                      <ChatAttachment key={media + ':' + index} media={media} />
                     ))}
                   </div>
                 )}
@@ -261,9 +254,7 @@ export function ChatsPage() {
   }
 
   const pickFiles = (event: ChangeEvent<HTMLInputElement>) => {
-    const picked = Array.from(event.target.files ?? []).filter((file) =>
-      file.type.startsWith('image/'),
-    )
+    const picked = Array.from(event.target.files ?? [])
     if (picked.length) setFiles((current) => [...current, ...picked].slice(0, 4))
     event.target.value = ''
   }
@@ -396,7 +387,11 @@ export function ChatsPage() {
                     key={`${file.name}-${index}`}
                     className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 font-mono text-[11px]"
                   >
-                    <Icon name="image" size={13} className="text-coral-deep" />
+                    <Icon
+                      name={file.type.startsWith('image/') ? 'image' : 'file'}
+                      size={13}
+                      className="text-coral-deep"
+                    />
                     <span className="max-w-32 truncate">{file.name}</span>
                     <button
                       type="button"
@@ -414,14 +409,13 @@ export function ChatsPage() {
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/*"
                 multiple
                 className="hidden"
                 onChange={pickFiles}
               />
               <button
                 type="button"
-                aria-label="Прикрепить картинку"
+                aria-label="Прикрепить файлы"
                 onClick={() => fileRef.current?.click()}
                 className="btn btn-ghost btn-icon h-11 w-11 shrink-0"
               >

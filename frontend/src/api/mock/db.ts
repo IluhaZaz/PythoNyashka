@@ -40,7 +40,7 @@ export interface MockDb {
   matches: Match[]
   chats: MockChat[]
   notifications: NotificationItem[]
-  media: Record<string, string>
+  media: Record<string, string | { dataUrl: string; fileName: string }>
 }
 
 function fresh(): MockDb {

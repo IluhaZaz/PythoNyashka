@@ -1,5 +1,5 @@
 import type { NyashkaApi } from './contract'
-import { ApiError, request, requestBlob } from './http'
+import { ApiError, request, requestAttachment, requestBlob } from './http'
 import { tokenStore } from './tokens'
 import type {
   AuthTokens,
@@ -133,6 +133,10 @@ export const liveApi: NyashkaApi = {
 
   mediaBlob(mediaId, signal) {
     return requestBlob(`/media/${mediaId}`, signal)
+  },
+
+  attachment(mediaId, signal) {
+    return requestAttachment('/media/' + mediaId, signal)
   },
 
   async notifications(limit, offset) {

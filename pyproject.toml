@@ -35,6 +35,8 @@ poethepoet = "^0.48.0"
 ruff = "^0.16.10"
 mypy = "^2.4.0"
 openapi-python-client = "^0.29.1"
+pytest = "^8.4.0"
+pytest-cov = "^7.0.0"
 
 [tool.poe.tasks.ruff]
 shell = "ruff check --no-cache --show-fixes --output-format grouped src"
@@ -44,6 +46,23 @@ shell = "ruff check src --fix"
 
 [tool.poe.tasks.mypy]
 shell = "mypy src"
+
+[tool.poe.tasks.test]
+cmd = "pytest"
+
+[tool.poe.tasks.check]
+cmd = "python scripts/run_tests.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers -m 'not e2e'"
+markers = [
+    "e2e: isolated Compose scenario using real service-to-service connections",
+    "security: authentication, access control or deployment isolation checks",
+]
+
+[tool.coverage.run]
+concurrency = ["thread", "greenlet"]
 
 [build-system]
 requires = ["poetry-core"]

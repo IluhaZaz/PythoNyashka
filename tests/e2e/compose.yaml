@@ -1,0 +1,183 @@
+x-api: &api
+  image: ${COMPOSE_PROJECT_NAME}-app
+  healthcheck:
+    test: [CMD, python, -c, "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/openapi.json', timeout=3).close()"]
+    interval: 2s
+    timeout: 5s
+    retries: 30
+
+x-db: &db
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: pythonyashka_e2e
+  DB_USER: e2e
+  DB_PASSWORD: local_e2e_only
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: pythonyashka_e2e
+      POSTGRES_USER: e2e
+      POSTGRES_PASSWORD: local_e2e_only
+    healthcheck:
+      test: [CMD, pg_isready, -h, "127.0.0.1", -U, e2e, -d, pythonyashka_e2e]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrations:
+    image: ${COMPOSE_PROJECT_NAME}-app
+    build:
+      context: ../..
+      dockerfile: .docker/DockerfileMigrations
+    environment: *db
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  kafka:
+    image: apache/kafka:4.4.0
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+    healthcheck:
+      test: [CMD, /opt/kafka/bin/kafka-topics.sh, --bootstrap-server, "kafka:9092", --list]
+      interval: 3s
+      timeout: 8s
+      retries: 30
+
+  kafka-init:
+    image: apache/kafka:4.4.0
+    entrypoint: [/opt/kafka/bin/kafka-topics.sh]
+    command: [--bootstrap-server, "kafka:9092", --create, --if-not-exists, --topic, notification.events, --partitions, "1", --replication-factor, "1"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  minio:
+    image: pgsty/silo:latest
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: e2e-minio
+      MINIO_ROOT_PASSWORD: local_e2e_only
+
+  mailpit:
+    image: axllent/mailpit:v1.27.8
+    environment:
+      MP_SMTP_TLS_CERT: /certs/cert.pem
+      MP_SMTP_TLS_KEY: /certs/key.pem
+      MP_SMTP_REQUIRE_TLS: "true"
+      MP_SMTP_AUTH: e2e:local_e2e_only
+    volumes:
+      - ${E2E_CERT_DIR:?required}:/certs:ro
+
+  auth:
+    <<: *api
+    command: uvicorn src.auth.main:app --host 0.0.0.0
+    environment:
+      <<: *db
+      AUTH_JWT_SECRET: &jwt pythonyashka-isolated-e2e-test-key-only
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+
+  profile:
+    <<: *api
+    command: uvicorn src.profile.main:app --host 0.0.0.0
+    environment: *db
+    depends_on: &migrated
+      migrations:
+        condition: service_completed_successfully
+
+  match:
+    <<: *api
+    command: uvicorn src.match.main:app --host 0.0.0.0
+    environment: *db
+    depends_on: *migrated
+
+  chat:
+    <<: *api
+    command: uvicorn src.chat.main:app --host 0.0.0.0
+    environment: *db
+    depends_on: *migrated
+
+  media:
+    <<: *api
+    command: uvicorn src.media.main:app --host 0.0.0.0
+    environment:
+      <<: *db
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_ACCESS_KEY: e2e-minio
+      S3_SECRET_KEY: local_e2e_only
+      S3_BUCKET_NAME: e2e-media
+    healthcheck:
+      test: [CMD, python, -c, "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/openapi.json', timeout=3).close(); urlopen('http://minio:9000/minio/health/ready', timeout=3).close()"]
+      interval: 2s
+      timeout: 7s
+      retries: 30
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+
+  notification:
+    <<: *api
+    command: uvicorn src.notification.main:app --host 0.0.0.0
+    environment:
+      <<: *db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_USERNAME: e2e
+      SMTP_PASSWORD: local_e2e_only
+      SMTP_FROM_ADDRESS: noreply@example.com
+      SSL_CERT_FILE: /certs/cert.pem
+    volumes:
+      - ${E2E_CERT_DIR:?required}/cert.pem:/certs/cert.pem:ro
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+
+  bff:
+    <<: *api
+    command: uvicorn src.bff.main:app --host 0.0.0.0
+    environment:
+      AUTH_JWT_SECRET: *jwt
+      BFF_AUTH_BASE_URL: http://auth:8000
+      BFF_PROFILE_BASE_URL: http://profile:8000
+      BFF_MATCH_BASE_URL: http://match:8000
+      BFF_CHAT_BASE_URL: http://chat:8000
+      BFF_MEDIA_BASE_URL: http://media:8000
+      BFF_NOTIFICATION_BASE_URL: http://notification:8000
+    volumes:
+      - ../../generated:/app/generated:ro
+    ports:
+      - "127.0.0.1::8000"
+    depends_on:
+      auth:
+        condition: service_healthy
+      profile:
+        condition: service_healthy
+      match:
+        condition: service_healthy
+      chat:
+        condition: service_healthy
+      media:
+        condition: service_healthy
+      notification:
+        condition: service_healthy

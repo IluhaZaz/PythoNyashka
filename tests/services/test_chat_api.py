@@ -17,6 +17,8 @@ from tests.helpers import (
 
 pytestmark = pytest.mark.anyio
 
+OTHER_MEDIA_ID = "00000000-0000-4000-8000-000000000010"
+
 
 @pytest.fixture
 async def client(service_client):
@@ -95,7 +97,9 @@ async def test_list_chats_validates_profile_id(client, params):
     assert_validation_error(await client.get("/chats", params=params), "query", "profile_id")
 
 
-@pytest.mark.parametrize("media", [[], [MEDIA_ID]], ids=["text-only", "with-attachment"])
+@pytest.mark.parametrize(
+    "media", [[], [MEDIA_ID, OTHER_MEDIA_ID, MEDIA_ID]], ids=["text-only", "with-attachments"],
+)
 async def test_send_message_persists_and_history_serializes_message(client, member_id, media):
     body = {"senderId": member_id, "text": "Привет!", "media": media}
     assert_no_content(await client.post(f"/chats/{CHAT_ID}/message", json=body))
@@ -109,6 +113,33 @@ async def test_send_message_persists_and_history_serializes_message(client, memb
     UUID(message["id"])
     assert datetime.fromisoformat(message["sentAt"]).tzinfo is not None
     assert {key: message[key] for key in body} == body
+
+
+async def test_attachment_access_checks_membership_and_distinguishes_unlinked_files(
+    client, member_id, seed_profile, db_sessions,
+):
+    recipient = await seed_profile()
+    outsider = await seed_profile()
+    async with db_sessions() as session:
+        session.add(ChatMember(chat_id=CHAT_ID, profile_id=recipient))
+        await session.commit()
+    response = await client.post(
+        f"/chats/{CHAT_ID}/message",
+        json={"senderId": member_id, "text": "With attachment", "media": [MEDIA_ID]},
+    )
+    assert_no_content(response)
+
+    for media_id, profile_id, expected in [
+        (MEDIA_ID, member_id, "allowed"),
+        (MEDIA_ID, recipient, "allowed"),
+        (MEDIA_ID, outsider, "denied"),
+        (MISSING_ID, member_id, "unlinked"),
+    ]:
+        response = await client.get(
+            f"/chats/media/{media_id}/access", params={"profile_id": profile_id},
+        )
+        assert response.status_code == 200, response.text
+        assert response.json() == {"access": expected}
 
 
 async def test_send_message_rejects_sender_who_is_not_a_member(client, member_id, seed_profile):
@@ -161,7 +192,6 @@ async def test_get_chat_history_orders_messages_and_pages_results(client, member
                     chat_id=CHAT_ID,
                     sender_id=member_id,
                     text="First",
-                    media=[],
                     sent_at=timestamp,
                 ),
                 Message(
@@ -169,7 +199,6 @@ async def test_get_chat_history_orders_messages_and_pages_results(client, member
                     chat_id=CHAT_ID,
                     sender_id=member_id,
                     text="Second",
-                    media=[],
                     sent_at=timestamp + timedelta(seconds=1),
                 ),
             ]

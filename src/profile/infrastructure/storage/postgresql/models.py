@@ -21,7 +21,7 @@ class Profile(ProfileMixin, Base):
         default=lambda: str(uuid.uuid4())
     )
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    avatar_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    avatar_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     surname: Mapped[str] = mapped_column(String(100), nullable=False)
     age: Mapped[int] = mapped_column(nullable=False)

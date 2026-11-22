@@ -4,7 +4,7 @@ import pytest
 
 from src.profile import dependencies
 from src.profile.main import app
-from tests.helpers import MISSING_ID, assert_no_content, assert_validation_error, profile_body
+from tests.helpers import MEDIA_ID, MISSING_ID, assert_no_content, assert_validation_error, profile_body
 
 pytestmark = pytest.mark.anyio
 
@@ -135,3 +135,22 @@ async def test_delete_profile_is_idempotent_and_leaves_other_profiles(client, se
     assert (await client.get(f"/profiles/{profile_id}")).status_code == 404
     assert_no_content(await client.delete(f"/profiles/{profile_id}"))
     assert (await client.get(f"/profiles/{other_id}")).status_code == 200
+
+
+
+async def test_avatar_usage_only_recognizes_current_avatar(client, seed_profile):
+    profile_id = await seed_profile()
+    lookup = f"/profiles/avatars/{MEDIA_ID}"
+    assert (await client.get(lookup)).status_code == 404
+
+    assigned = await client.patch(
+        "/profiles", params={"profile_id": profile_id}, json={"avatar_id": MEDIA_ID},
+    )
+    assert_no_content(assigned)
+    assert_no_content(await client.get(lookup))
+
+    removed = await client.patch(
+        "/profiles", params={"profile_id": profile_id}, json={"avatar_id": None},
+    )
+    assert_no_content(removed)
+    assert (await client.get(lookup)).status_code == 404

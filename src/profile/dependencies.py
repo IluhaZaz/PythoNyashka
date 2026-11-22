@@ -46,3 +46,9 @@ def delete_profile_uc(
     repo: Annotated[ProfileRepository, Depends(get_repository)],
 ) -> usecase.DeleteProfile:
     return usecase.DeleteProfile(repository=repo)
+
+
+def get_avatar_usage_uc(
+    repo: Annotated[ProfileRepository, Depends(get_repository)],
+) -> usecase.GetAvatarUsage:
+    return usecase.GetAvatarUsage(repository=repo)

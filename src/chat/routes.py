@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse, Response
 
 from src.chat import dependencies
 from src.chat.domain.schemas import (
+    AttachmentAccessResponse,
     ChatCreate,
     ChatCreatedResponse,
     ChatMessagesResponse,
@@ -16,6 +17,7 @@ from src.chat.domain.schemas import (
 from src.chat.usecase import (
     ChatNotFoundError,
     CreateChat,
+    GetAttachmentAccess,
     GetChatMessages,
     GetChats,
     ProfileNotFoundError,
@@ -90,3 +92,17 @@ async def get_chat_messages(
     except ChatNotFoundError:
         return JSONResponse(status_code=404, content={"error": "Chat not found"})
     return ChatMessagesResponse(chat_id=chat_id, messages=messages)
+
+
+@router.get(
+    "/media/{media_id}/access",
+    operation_id="getAttachmentAccess",
+    response_model=AttachmentAccessResponse,
+)
+async def get_attachment_access(
+    media_id: UUID,
+    profile_id: Annotated[UUID, Query(description="Acting profile ID from the BFF")],
+    usecase: Annotated[GetAttachmentAccess, Depends(dependencies.get_attachment_access_uc)],
+) -> AttachmentAccessResponse:
+    access = await usecase.execute(str(media_id), str(profile_id))
+    return AttachmentAccessResponse(access=access)

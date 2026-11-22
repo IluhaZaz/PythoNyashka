@@ -50,3 +50,11 @@ class GetProfile:
         if profile is None:
             raise ProfileNotFoundError()
         return profile
+
+
+class GetAvatarUsage:
+    def __init__(self, repository: ProfileRepository) -> None:
+        self.repository = repository
+
+    async def execute(self, media_id: str) -> bool:
+        return await self.repository.has_avatar(media_id)

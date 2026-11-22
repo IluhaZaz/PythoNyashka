@@ -167,13 +167,6 @@ def get_profile_uc(
     return GetProfile(profile_id=profile_id, profile_client=profile_client)
 
 
-def get_media_uc(
-    profile_id: Annotated[UUID | None, Depends(get_current_profile_id)],
-    client: Annotated[MediaClient, Depends(get_media_client)],
-) -> GetMedia:
-    return GetMedia(client=client, authenticated=profile_id is not None)
-
-
 def get_notification_config() -> NotificationClientConfig:
     return NotificationClientConfig()
 
@@ -214,6 +207,18 @@ async def get_chat_client(
         timeout=httpx.Timeout(config.timeout_seconds),
     ) as client:
         yield client
+
+
+def get_media_uc(
+    profile_id: Annotated[UUID | None, Depends(get_current_profile_id)],
+    media_client: Annotated[MediaClient, Depends(get_media_client)],
+    chat_client: Annotated[ChatClient, Depends(get_chat_client)],
+    profile_client: Annotated[ProfileClient, Depends(get_profile_client)],
+) -> GetMedia:
+    return GetMedia(
+        profile_id=profile_id, media_client=media_client,
+        chat_client=chat_client, profile_client=profile_client,
+    )
 
 
 def chats_uc(

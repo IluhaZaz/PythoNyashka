@@ -1,9 +1,17 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, ForeignKeyConstraint, Index, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infrastructure.storage.postgresql.models import Base
 
@@ -48,7 +56,29 @@ class Message(Base):
     chat_id: Mapped[str] = mapped_column(String(36), nullable=False)
     sender_id: Mapped[str] = mapped_column(String(36), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
-    media: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    attachments: Mapped[list["MessageAttachment"]] = relationship(
+        order_by="MessageAttachment.position",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     sent_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False,
     )
+
+    @property
+    def media(self) -> list[str]:
+        return [attachment.media_id for attachment in self.attachments]
+
+
+class MessageAttachment(Base):
+    __tablename__ = "message_attachments"
+    __table_args__ = (
+        Index("ix_message_attachments_media_id", "media_id"),
+        {"schema": "chat"},
+    )
+
+    message_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("chat.messages.id", ondelete="CASCADE"), primary_key=True,
+    )
+    position: Mapped[int] = mapped_column(Integer, primary_key=True)
+    media_id: Mapped[str] = mapped_column(String(36), nullable=False)

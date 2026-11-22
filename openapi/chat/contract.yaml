@@ -42,6 +42,33 @@ paths:
         '404':
           $ref: '#/components/responses/EntityNotFoundResponse'
 
+  /chats/media/{media_id}/access:
+    get:
+      summary: Check access to a chat attachment
+      operationId: getAttachmentAccess
+      tags: [Chats]
+      parameters:
+        - name: media_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: profile_id
+          in: query
+          required: true
+          description: Acting profile ID from the BFF.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Access decision for the profile and media ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachmentAccessResponse'
+
   /chats/{chat_id}/message:
     post:
       summary: Send message
@@ -96,6 +123,16 @@ paths:
 
 components:
   schemas:
+    AttachmentAccess:
+      type: string
+      description: Whether the profile can access the attachment, or the file is unlinked.
+      enum: [allowed, denied, unlinked]
+    AttachmentAccessResponse:
+      type: object
+      required: [access]
+      properties:
+        access:
+          $ref: '#/components/schemas/AttachmentAccess'
     ChatCreate:
       type: object
       required: [contactIds]
